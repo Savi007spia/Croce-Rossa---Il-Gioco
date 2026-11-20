@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Croce Rossa: Il nostro turno</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.babylonjs.com/babylon.js"></script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+</head>
+<body>
+<canvas id="renderCanvas" aria-label="Mondo tridimensionale"></canvas>
+<div id="vignette"></div>
+<div id="toast" class="toast hidden"></div>
+
+<section id="deviceScreen" class="screen setup-screen device-screen" aria-labelledby="deviceTitle">
+  <div class="setup-card device-card">
+    <p class="eyebrow">BENVENUTO NELLA SQUADRA</p>
+    <h1 id="deviceTitle">Come vuoi giocare?</h1>
+    <p class="muted">Scegli il dispositivo: ti mostreremo i comandi giusti.</p>
+    <div class="device-options">
+      <button class="device-option" type="button" data-device-mode="pc">
+        <span class="device-icon" aria-hidden="true">⌨</span><strong>Computer</strong>
+        <span>Muoviti con tastiera, mouse o controller.</span>
+      </button>
+      <button class="device-option" type="button" data-device-mode="mobile">
+        <span class="device-icon" aria-hidden="true">▯</span><strong>Telefono o tablet</strong>
+        <span>Usa i pulsanti touch sullo schermo.</span>
+      </button>
+      <button class="device-option" type="button" data-device-mode="quest">
+        <span class="device-icon" aria-hidden="true">◉</span><strong>Meta Quest 3</strong>
+        <span>Entra nel mondo con il visore e i controller.</span>
+      </button>
+    </div>
+    <p class="device-note">Per Quest serve il browser Meta Quest e una connessione sicura HTTPS. Puoi cambiare dispositivo dal menu.</p>
+  </div>
+</section>
+
+<section id="titleScreen" class="screen title-screen hidden">
+  <div class="title-orb"></div><div class="title-rule"></div>
+  <p class="eyebrow">UN TURNO DI VOLONTARIATO · UNA SQUADRA SOLIDALE</p>
+  <h1>CROCE ROSSA<br><span>IL NOSTRO TURNO</span></h1>
+  <p class="subtitle">Sei attività di volontariato da vivere insieme.</p>
+  <div class="title-actions">
+    <button id="newGameBtn" class="gold-button">Gioca</button>
+    <button id="continueBtn" class="line-button">Continua</button>
+    <button id="archiveBtn" class="line-button">Attività di volontariato</button>
+    <button id="titleSettingsBtn" class="line-button">Impostazioni</button>
+    <button id="multiplayerTitleBtn" class="line-button">Gioca insieme</button>
+    <button id="changeDeviceBtn" class="line-button">Cambia dispositivo</button>
+  </div>
+  <div id="xrLaunch" class="xr-launch hidden">
+    <button id="enterXRBtn" class="gold-button" disabled>Entra nel visore</button>
+    <p id="xrStatus" role="status">Controllo supporto VR…</p>
+  </div>
+  <div class="guide-actions">
+    <button id="guideLoreBtn" class="guide-link">Scopri le attività</button>
+    <button id="guideDieBtn" class="guide-link">Come funzionano le prove</button>
+    <button id="guideControlsBtn" class="guide-link">Comandi di gioco</button>
+  </div>
+  <div class="title-foot">alpha 0.1.20 · 6 tappe di gioco · attività di volontariato</div>
+</section>
+
+<section id="introScreen" class="screen setup-screen hidden">
+  <div class="setup-card intro-card">
+    <div class="intro-top"><p id="introKicker" class="eyebrow">IL PROLOGO</p><span id="introCount" class="intro-count">1 / 5</span></div>
+    <h2 id="introTitle">Un turno in squadra</h2>
+    <div id="introGuideTabs" class="intro-guide-tabs hidden" role="tablist" aria-label="Guida di gioco">
+      <button type="button" class="intro-guide-tab active" data-intro-guide-mode="controls" role="tab" aria-selected="true">Comandi di gioco</button>
+      <button type="button" class="intro-guide-tab" data-intro-guide-mode="functions" role="tab" aria-selected="false">Funzioni di gioco</button>
+    </div>
+    <div class="intro-layout">
+      <div id="introVisual" class="intro-visual visual-kingdoms"><div class="lore-orbit"><i></i><i></i><i></i><b>V</b></div><div class="lore-caption">CINQUE REGNI · UN FUTURO CONTESO</div></div>
+      <div class="intro-copy"><div id="introText"></div></div>
+    </div>
+    <div class="intro-progress"><i id="introProgressFill"></i></div>
+    <div class="setup-footer intro-footer"><button id="introBackBtn" class="line-button">Titolo</button><button id="introSkipBtn" class="line-button">Salta guida</button><button id="introNextBtn" class="gold-button">Continua →</button></div>
+  </div>
+</section>
+
+<section id="settingsScreen" class="screen setup-screen hidden">
+  <div class="setup-card settings-screen-card">
+    <p class="eyebrow">CONFIGURA I COMANDI</p>
+    <h2>Impostazioni</h2>
+    <p class="muted">Personalizza tastiera e controller. Le modifiche vengono salvate su questo browser.</p>
+    <div id="settingsScreenContent" class="settings-content"></div>
+    <div class="setup-footer"><button id="settingsBackBtn" class="line-button">Torna al titolo</button></div>
+  </div>
+</section>
+
+<section id="classScreen" class="screen setup-screen hidden">
+  <div class="setup-card">
+    <p class="eyebrow">IL TUO VIAGGIO</p><h2>Scegli il tuo personaggio</h2>
+    <label class="field-label" for="heroName">Come ti chiami?</label><input id="heroName" maxlength="20" value="Volontario" autocomplete="off">
+    <div class="class-layout"><div id="classPreview" class="class-preview"><div id="classPreviewArt" class="class-preview-art" aria-live="polite"></div><div id="previewClassName">Soccorritore</div><small id="previewWeapon" class="preview-weapon-label">RUOLO NELLA SQUADRA</small><small id="previewStats"></small><p id="previewDescription" class="preview-description">Ti piace dare una mano e collaborare con la squadra.</p></div><div id="classList" class="class-list"></div></div>
+    <section class="appearance-editor" aria-labelledby="appearanceTitle">
+      <div class="appearance-heading"><h3 id="appearanceTitle">Scegli la tua divisa</h3><p>I colori non cambiano il tuo ruolo nella squadra.</p></div>
+      <div class="appearance-grid">
+        <label for="appearanceSkin">Tonalità della pelle<select id="appearanceSkin"><option value="#f0cfb3">Avorio</option><option value="#dfb394">Miele</option><option value="#c98f78" selected>Ambra</option><option value="#a97058">Rame</option><option value="#704a3b">Ebano</option></select></label>
+        <label for="appearanceHairStyle">Acconciatura<select id="appearanceHairStyle"><option value="short" selected>Corta</option><option value="long">Lunga</option><option value="braid">Treccia</option><option value="curls">Riccia</option><option value="shaved">Rasata</option></select></label>
+        <label for="appearanceHairColor">Colore dei capelli<input id="appearanceHairColor" type="color" value="#34252b"></label>
+        <label for="appearanceOutfit">Divisa<select id="appearanceOutfit"><option value="class" selected>Divisa del mio ruolo</option><option value="traveler">Polo blu</option><option value="robe">Divisa bianca</option><option value="armor">Gilet alta visibilità</option></select></label>
+        <label for="appearanceOutfitColor">Colore dell'abbigliamento<input id="appearanceOutfitColor" type="color" value="#6f536e"></label>
+      </div>
+    </section>
+    <div class="setup-footer"><button id="backTitleBtn" class="line-button">Indietro</button><button id="beginBtn" class="gold-button">Inizia il viaggio</button></div>
+  </div>
+</section>
+
+<section id="difficultyScreen" class="screen setup-screen hidden">
+  <div class="setup-card difficulty-card">
+    <p class="eyebrow">SCEGLI COME GIOCARE</p>
+    <h2>Scegli la difficoltà</h2>
+    <p class="muted">Per cominciare consigliamo Tranquilla. La scelta vale per tutta la partita.</p>
+    <div class="difficulty-options" role="group" aria-label="Livello di difficoltà">
+      <button type="button" class="difficulty-option selected" data-difficulty="easy" aria-pressed="true">
+        <span class="difficulty-index">01</span><strong>Tranquilla</strong>
+        <small>Prove più semplici, ideali per scoprire il turno. Le ricompense sono un po' più piccole.</small>
+      </button>
+      <button type="button" class="difficulty-option" data-difficulty="normal" aria-pressed="false">
+        <span class="difficulty-index">02</span><strong>Equilibrata</strong>
+        <small>La sfida e le ricompense restano quelle attuali.</small>
+      </button>
+      <button type="button" class="difficulty-option" data-difficulty="hard" aria-pressed="false">
+        <span class="difficulty-index">03</span><strong>Impegnativa</strong>
+        <small>Prove più difficili, con ricompense e bottini più grandi.</small>
+      </button>
+    </div>
+    <div class="setup-footer">
+      <button id="difficultyBackBtn" class="line-button">Indietro</button>
+      <button id="difficultyContinueBtn" class="gold-button">Scegli lo slot</button>
+    </div>
+  </div>
+</section>
+
+<section id="slotScreen" class="screen setup-screen hidden">
+  <div class="setup-card slot-card"><p class="eyebrow">TURNI SALVATI</p><h2>Scegli uno slot</h2><p class="muted">Quattro partite indipendenti. Nessuna sovrascrittura senza conferma.</p><div id="slotList" class="slot-list"></div><button id="backSlotBtn" class="line-button">Indietro</button></div>
+</section>
+
+<section id="archiveScreen" class="screen setup-screen hidden">
+  <div class="setup-card archive-card"><p class="eyebrow">SERVIZI DELLA COMUNITÀ</p><h2>Attività di volontariato</h2><p class="muted">Scopri alcune attività dei turni: raccolta e logistica, supporto sociale, salute e prevenzione.</p><div class="archive-filter"><input id="archiveSearch" placeholder="Cerca un'attività…"><select id="arcFilter"><option value="all">Tutte le attività</option></select></div><div id="archiveList" class="archive-list"></div><button id="closeArchiveBtn" class="line-button">Chiudi</button></div>
+</section>
+
+<div id="gameUI" class="game-ui hidden">
+  <header class="hud-top">
+    <div class="hero-card"><div class="hero-gem">✚</div><div><strong id="hudName">Volontario</strong><small id="hudClass">Soccorritore · Lv 1</small><div class="statbar hp"><i id="hpFill"></i></div><small id="hpText">185 / 185</small></div></div>
+    <div class="chapter-card"><small id="hudArc">TURNI DI VOLONTARIATO</small><strong id="hudChapter">TAPPA 1</strong><span id="hudStep">Preparare il turno</span></div>
+    <div class="hud-actions"><button data-panel="journal">☷ <span>Turni</span></button><button data-panel="inventory">◇ <span>Inventario</span></button><button data-panel="character">♙ <span>Personaggio</span></button><button id="mapToggleBtn" class="map-toggle" aria-controls="localMap" aria-expanded="false">⌖ <span>Mappa</span></button><button id="hubToggleBtn" type="button">⌂ <span>Comitato</span></button><button data-panel="save">▣ <span>Salva</span></button><button data-panel="settings">⚙ <span>Impostazioni</span></button></div>
+  </header>
+  <div class="world-clock" aria-live="polite"><strong id="worldTime">--:--</strong><span id="worldPhase">Ora locale</span><span id="worldWeather">Cielo sereno</span></div>
+  <div class="objective-card"><span class="objective-mark" aria-hidden="true">✧</span><div><small>COSA FARE ORA</small><strong id="objectiveText">Raggiungi il luogo del soccorso</strong></div></div>
+  <button id="nearPrompt" class="near-prompt hidden" type="button">Parla / interagisci</button>
+  <div id="dialogueBox" class="dialogue-box hidden"><div class="dialogue-header"><span id="dialogueSpeaker">Narratore</span><span id="dialogueCount">1 / 1</span></div><p id="dialogueText"></p><div class="dialogue-footer"><span id="dialogueHint">Premi E o clicca continua</span><button id="dialogueNext" class="gold-button small-button">Continua ↗</button></div></div>
+  <div id="questCompleteBar" class="quest-complete hidden"><span>La tappa è pronta per essere conclusa.</span><button id="completeStepBtn" class="gold-button small-button">Concludi tappa</button></div>
+  <section id="missionOverlay" class="mission-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="missionTitle">
+    <article class="mission-card">
+      <header class="mission-header"><div><p id="missionKicker" class="eyebrow">ATTIVITÀ DI SQUADRA</p><h2 id="missionTitle">Preparare il turno</h2><p id="missionIntro"></p></div><button id="missionCloseBtn" class="close-button" type="button" aria-label="Metti in pausa l'attività">×</button></header>
+      <div id="missionBody" class="mission-body"></div>
+      <p id="missionFeedback" class="mission-feedback" role="status" aria-live="polite"></p>
+    </article>
+  </section>
+  <div id="choiceBox" class="choice-box hidden"><p>La tua scelta avrà conseguenze.</p><div id="choiceButtons"></div></div>
+  <div id="combatBox" class="combat-box hidden"><div class="combat-heading"><div><small>ESERCITAZIONE</small><h3 id="enemyName">Simulazione di soccorso</h3></div><div class="enemy-hp"><div class="statbar enemy"><i id="enemyHpFill"></i></div><small id="enemyHpText">780 / 780</small></div></div><div class="destiny-meter"><span>ENERGIA</span><div class="statbar destiny"><i id="destinyFill"></i></div><small id="destinyText">100 / 100</small></div><p id="combatLog">La squadra si prepara alla simulazione.</p><small id="xrDiceHint" class="xr-dice-hint hidden">Nel visore, fai un lancio deciso con la mano destra o il controller per tirare il Dado. Puoi anche selezionare il pulsante.</small><div id="combatActions" class="combat-actions"><button data-action="attack">Azione</button><button data-action="skill">Tecnica</button><button data-action="die">Lancia il Dado</button><button data-action="potion">Ristoro</button><button data-action="defend">Preparati</button><button data-action="retreat">Abbandona</button></div><div id="battleDecision" class="battle-decision hidden"><strong>Questa esercitazione è sospesa.</strong><p>Scegli se riprendere da dove avevi lasciato o ricominciare.</p><button id="resumeBattleBtn" type="button">Riprendi</button><button id="restartBattleBtn" type="button">Ricomincia</button><button id="laterBattleBtn" type="button">Non ora</button></div></div>
+  <div id="panelShade" class="panel-shade hidden"></div>
+  <aside id="sidePanel" class="side-panel hidden"><div class="panel-heading"><div><small id="panelEyebrow">PORTATORE</small><h2 id="panelTitle">Quest</h2></div><button id="closePanelBtn" class="close-button">×</button></div><div id="panelContent" class="panel-content"></div></aside>
+  <button id="mapBackdrop" class="map-backdrop hidden" type="button" aria-label="Chiudi mappa"></button>
+  <aside id="localMap" class="local-map hidden" aria-label="Mappa e tappe del turno" aria-modal="true" role="dialog">
+    <div class="local-map-heading"><div><small>IL TUO TURNO</small><strong id="localMapHeading">TAPPA 1 · Preparare il turno</strong></div><button id="closeMapBtn" class="close-button" aria-label="Chiudi mappa">×</button></div>
+    <div class="map-tabs" role="tablist" aria-label="Sezione della mappa"><button type="button" class="map-tab active" id="areaMapTab" role="tab" aria-selected="true">Mappa area</button><button type="button" class="map-tab" id="worldMapTab" role="tab" aria-selected="false">Tappe del turno</button></div>
+    <section id="areaMapView" class="map-view" role="tabpanel" aria-labelledby="areaMapTab">
+      <div class="local-map-field" role="img" aria-label="Posizione dei giocatori nell'area attuale"><span class="local-map-north">N</span><span class="local-map-route"></span><span id="mapPlayerSelf" class="local-map-player local-map-self" title="Tu">◆</span><span id="mpRadarRemote" class="local-map-player local-map-other hidden" title="Compagno">◆</span></div>
+      <div class="local-map-legend"><span><i class="self-dot"></i>Tu</span><span><i class="other-dot"></i>Compagno</span></div>
+      <div id="mpRadarDistance" class="local-map-status">Modalità solo · area corrente</div>
+      <small class="local-map-note">La mappa mostra solo la zona della scena attuale; le aree future restano nascoste.</small>
+    </section>
+    <section id="worldMapView" class="map-view hidden" role="tabpanel" aria-labelledby="worldMapTab">
+      <div id="worldMapContent" class="world-map-content"></div>
+    </section>
+  </aside>
+  <div id="controlsHint" class="controls-hint" aria-label="Comandi principali"></div>
+  <div id="touchControls" class="touch-controls" aria-label="Comandi touch">
+    <div class="touch-pad" role="group" aria-label="Muovi il personaggio">
+      <button type="button" data-touch-action="moveForward" aria-label="Vai avanti">▲</button>
+      <button type="button" data-touch-action="moveLeft" aria-label="Vai a sinistra">◀</button>
+      <button type="button" data-touch-action="moveBackward" aria-label="Vai indietro">▼</button>
+      <button type="button" data-touch-action="moveRight" aria-label="Vai a destra">▶</button>
+    </div>
+    <button id="touchInteractBtn" class="touch-interact" type="button" aria-label="Parla o interagisci">Parla /<br>interagisci</button>
+  </div>
+  <button id="quickHelpBtn" class="quick-help-trigger" type="button" aria-haspopup="dialog" aria-controls="quickHelp">? Aiuto</button>
+  <section id="quickHelp" class="quick-help hidden" role="dialog" aria-modal="true" aria-labelledby="quickHelpTitle">
+    <div class="quick-help-heading"><div><small>GUIDA RAPIDA</small><h2 id="quickHelpTitle">Come si gioca?</h2></div><button id="quickHelpCloseBtn" class="close-button" type="button" aria-label="Chiudi guida">×</button></div>
+    <ol>
+      <li><strong>Muoviti:</strong> su computer usa WASD o le frecce; su telefono tieni premute le frecce sullo schermo; su Quest usa lo stick sinistro.</li>
+      <li><strong>Avvicinati:</strong> raggiungi una persona o un oggetto luminoso.</li>
+      <li><strong>Interagisci:</strong> premi E, tocca <em>Parla / interagisci</em> o usa il grilletto destro del visore. Per leggere, premi <em>Continua</em>.</li>
+      <li><strong>Segui l'obiettivo:</strong> guarda il riquadro <em>Cosa fare ora</em> e il segnale nel mondo.</li>
+    </ol>
+    <p>Quando concludi una tappa principale ottieni il suo distintivo: ritrovali tutti nell'Album dei distintivi del Diario. Questa è una storia da giocare, non una guida per svolgere soccorsi reali.</p>
+    <button id="quickHelpDoneBtn" class="gold-button" type="button">Ho capito!</button>
+  </section>
+  <div id="chapterCurtain" class="chapter-curtain hidden"><div class="curtain-symbol">✧</div><small id="curtainArc">TURNI DI VOLONTARIATO</small><h2 id="curtainTitle">TAPPA 1</h2><p id="curtainSubtitle">Preparare il turno</p><div class="curtain-line"></div></div>
+</div>
+
+<div id="pauseScreen" class="screen pause-screen hidden"><p class="eyebrow">IL TURNO È IN PAUSA</p><h2>Il turno è in pausa.</h2><button id="resumeBtn" class="gold-button">Riprendi</button><button id="pauseSaveBtn" class="line-button">Salva e continua</button><button id="pauseHubBtn" class="line-button">Raggiungi il Comitato</button><button id="pauseMultiplayerBtn" class="line-button">Gioca in squadra</button><button id="pauseSettingsBtn" class="line-button">Impostazioni</button><button id="pauseTitleBtn" class="line-button">Torna al titolo</button></div>
+<div id="multiplayerOverlay" class="mp-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="mpTitle"><div class="mp-card"><p class="eyebrow">DUE VOLONTARI · UNA SQUADRA</p><h2 id="mpTitle">Gioca insieme</h2><p class="mp-description">Esplorate la stessa tappa e aiutatevi a vicenda. Ogni giocatore conserva il proprio personaggio e le proprie scoperte.</p><div id="mpStatus" class="mp-status" aria-live="polite">Scegli come giocare.</div><div id="mpCodeWrap" class="mp-code-wrap hidden"><label for="mpRoomCode">Codice della stanza</label><div class="mp-code-row"><input id="mpRoomCode" maxlength="6" autocomplete="off" placeholder="es. a4k9p2"><button id="mpJoinBtn" class="gold-button">Unisciti</button></div></div><div id="mpHostActions" class="mp-actions"><button id="mpCreateBtn" class="gold-button">Crea una partita di squadra</button><button id="mpJoinShowBtn" class="line-button">Entra con un codice</button></div><div id="mpRoomDisplay" class="mp-room-display hidden"><span>CODICE DA CONDIVIDERE</span><strong id="mpRoomCodeValue">------</strong><button id="mpCopyCodeBtn" class="line-button">Copia codice</button></div><p class="mp-note">Richiede Internet e il servizio di segnalazione PeerJS. La connessione diretta può essere bloccata da alcune reti; in tal caso serve una rete compatibile o un servizio TURN.</p><button id="mpCloseBtn" class="line-button">Chiudi</button></div></div>
+<script src="app.js"></script>
+</body>
+</html>
