@@ -1327,6 +1327,14 @@ function makeCivicBuilding(name,x,z,w,d,h,color,accent='#ef233c',label=name,show
     houseEntrances.push({kind:'house',root:entrance,name:'Entra: '+home.label,position:entrance.position,home});
   }
 }
+function redCrossPersonName(name){
+  const role=String(name||'');
+  if(!content?.redCrossStory)return role;
+  if(/\bcoordinatrice\b|\bcoordinatore\b|\breferente uds\b/i.test(role))return 'Angela';
+  if(/\breferente logistico\b/i.test(role))return 'Sara';
+  if(/\breferente (?:della )?distribuzione\b/i.test(role))return 'Antonella';
+  return role;
+}
 function buildRedCrossWorld(){
   const asphalt=mat('community_asphalt','#6a7473'),paint=mat('road_marking','#f2e7c7');
   const road=BABYLON.MeshBuilder.CreateGround('community_cross_road',{width:78,height:7,subdivisions:2},scene);road.position.set(0,.018,1);road.material=asphalt;road.parent=worldRoot;
@@ -1340,16 +1348,16 @@ function buildRedCrossWorld(){
     staff:[{name:'Volontaria di Comitato',position:[-1.6,1.1],color:'#2374a4'}]
   });
   makeCivicBuilding('community_center',-20,8,10,8,3.8,'#d7e1dc','#238c85','PREPARAZIONE UDS',false,{
-    id:'uds',label:'Unità di Strada · preparazione',type:'uds',resident:'Referente UDS',color:'#238c85',light:'#d9eee8',
+    id:'uds',label:'Unità di Strada · preparazione',type:'uds',resident:'Angela',color:'#238c85',light:'#d9eee8',
     features:[
-      {id:'uds-prep-table',label:'Tavoli di preparazione',speaker:'Referente UDS',text:'La squadra organizza qui i materiali da portare al turno. Puoi ripetere l’attività di preparazione della missione UDS.',position:[0,1.2],shape:'box',action:'uds-replay'},
-      {id:'uds-fridge',label:'Frigorifero delle scorte',speaker:'Referente UDS',text:'Il frigorifero contiene viveri e bevande destinati alle attività di supporto. Nel gioco le scorte si preparano con attenzione e si seguono le indicazioni del referente.',position:[4,-2.4],shape:'tall'}
+      {id:'uds-prep-table',label:'Tavoli di preparazione',speaker:'Angela',text:'La squadra organizza qui i materiali da portare al turno. Puoi ripetere l’attività di preparazione della missione UDS.',position:[0,1.2],shape:'box',action:'uds-replay'},
+      {id:'uds-fridge',label:'Frigorifero delle scorte',speaker:'Angela',text:'Il frigorifero contiene viveri e bevande destinati alle attività di supporto. Nel gioco le scorte si preparano con attenzione e si seguono le indicazioni del referente.',position:[4,-2.4],shape:'tall'}
     ],
-    staff:[{name:'Volontaria UDS',position:[-1.7,-1.2],color:'#287d83'},{name:'Volontario UDS',position:[1.5,-1.4],color:'#438765'}]
+    staff:[{name:'Angela',position:[-1.7,-1.2],color:'#287d83'},{name:'Volontario UDS',position:[1.5,-1.4],color:'#438765'}]
   });
   makeCivicBuilding('logistics_depot',19,8,11,9,4.2,'#d9d4c8','#d18a16','MAGAZZINO',false,{
-    id:'warehouse',label:'Magazzino delle dotazioni',type:'warehouse',resident:'Referente logistico',color:'#96621c',light:'#efdbb4',
-    features:[{id:'warehouse-inventory',label:'Scaffali delle dotazioni',speaker:'Referente logistico',text:'Le dotazioni di gioco sono inventariate e preparate per i servizi. Apri l’inventario per controllare i materiali del personaggio.',position:[-4,2.4],shape:'box',action:'inventory'}],
+    id:'warehouse',label:'Magazzino delle dotazioni',type:'warehouse',resident:'Sara',color:'#96621c',light:'#efdbb4',
+    features:[{id:'warehouse-inventory',label:'Scaffali delle dotazioni',speaker:'Sara',text:'Le dotazioni di gioco sono inventariate e preparate per i servizi. Apri l’inventario per controllare i materiali del personaggio.',position:[-4,2.4],shape:'box',action:'inventory'}],
     staff:[{name:'Volontario logistico',position:[1.7,-1.2],color:'#d18a16'}]
   });
   makeCivicBuilding('health_station',20,-17,11,8,4,'#e5e8e5','#d92332','SOCCORSO',true,{
@@ -1386,7 +1394,7 @@ function buildRedCrossWorld(){
   for(const x of [-2,6])for(const z of [19,23])makeBox('supply_shelter_post',[x,1.5,z],[.16,3,.16],mat('supply_shelter_post_mat','#66716d'),worldRoot,null,true);
   makeBox('supply_table',[2,.8,21],[5,.18,1.2],mat('supply_table_mat','#88775c'),worldRoot,null,true);
   const distributionStation=new BABYLON.TransformNode('distribution_station',scene);distributionStation.position.set(2,0,21);distributionStation.parent=worldRoot;
-  houseEntrances.push({kind:'flavor',root:distributionStation,name:'Punto di preparazione della distribuzione',position:distributionStation.position,speaker:'Referente della distribuzione',text:'La squadra prepara i pacchi e controlla le richieste in un’attività simulata. Avvicinati per ripetere la prova di distribuzione.',action:'distribution-replay'});
+  houseEntrances.push({kind:'flavor',root:distributionStation,name:'Punto di preparazione della distribuzione',position:distributionStation.position,speaker:'Antonella',text:'La squadra prepara i pacchi e controlla le richieste in un’attività simulata. Avvicinati per ripetere la prova di distribuzione.',action:'distribution-replay'});
   makeBox('bus_stop_panel',[-21,1.65,-11],[1.25,2.4,.15],mat('bus_stop_panel_mat','#39798a'),worldRoot,null,true);
   makeBox('bus_stop_roof',[-21,2.95,-11],[3.5,.16,1.5],mat('bus_stop_roof_mat','#647a7b'),worldRoot,null,true);
   for(const x of [-22.5,-19.5])makeBox('bus_stop_post',[x,1.45,-11],[.12,2.8,.12],mat('bus_stop_post_mat','#596461'),worldRoot,null,true);
@@ -1498,6 +1506,7 @@ function buildRuins(p,name){
 }
 
 function addNpc(name,pos,colorHex,kind='npc'){
+  name=redCrossPersonName(name);
   const root=new BABYLON.TransformNode('npc_'+name.replace(/\W/g,'_'),scene);root.position.set(pos[0],0,pos[1]);root.parent=actorRoot;
   const profile=characterProfile(name,colorHex,false),model=buildHumanoid(root,name,profile,0);
   if(kind==='npc'&&content?.redCrossStory)root.metadata={roaming:{home:root.position.clone(),target:null,wait:Math.random()*1.2,speed:.8+Math.random()*.35},model};
@@ -1560,8 +1569,9 @@ function rebuildActors(step){
   if(actorRoot)actorRoot.dispose(false,true);actorRoot=new BABYLON.TransformNode('worldActors',scene);actorRoot.parent=worldRoot;interactables=[];
   interactables.push(...houseEntrances);
   if(hubMode){
-    addNpc(content?.redCrossStory?'Coordinatrice':'Mara, Fornaia',[-8,-7],'#8d5554');
-    addNpc(content?.redCrossStory?'Referente logistico':'Teren, Fabbro',content?.redCrossStory?[14,14]:[8,-6],'#76524a',content?.redCrossStory?'npc':'blacksmith');
+    addNpc(content?.redCrossStory?'Angela':'Mara, Fornaia',content?.redCrossStory?[-20,14]:[-8,-7],'#8d5554');
+    addNpc(content?.redCrossStory?'Sara':'Teren, Fabbro',content?.redCrossStory?[19,14]:[8,-6],'#76524a',content?.redCrossStory?'npc':'blacksmith');
+    if(content?.redCrossStory)addNpc('Antonella',[2,24],'#9b6150');
     addNpc(content?.redCrossStory?'Volontario di Comitato':'Nilo',[8,10],'#6b7d83');
     addNpc(content?.redCrossStory?'Referente accoglienza':'Faye, Locandiera',content?.redCrossStory?[-14,12]:[-9,8],'#66517d',content?.redCrossStory?'npc':'innkeeper');
     if(!content?.redCrossStory)addNpc('Bren, Mercante',[0,13],'#a47a51','merchant');
@@ -1572,9 +1582,9 @@ function rebuildActors(step){
   for(const line of dialogue){const s=Array.isArray(line)?line[0]:'Narratore';if(!s||/^(Narratore|Protagonista|Portatore|Eroe|Sistema)$/i.test(s))continue;if(!names.includes(s))names.push(s);}
   if(String(step.scene)==='erenfall'||step.chapter_number<=3){
     const known=content?.redCrossStory?[['Coordinatrice',-7,-7,'#8d5554'],['Referente logistico',14,14,'#76524a'],['Volontario di Comitato',0,16,'#6b7d83'],['Referente accoglienza',-14,12,'#66517d'],['Volontario',15,-6,'#777b87']]:[['Mara, Fornaia',-8,-7,'#8d5554'],['Teren, Fabbro',8,-6,'#76524a','blacksmith'],['Nilo',8,10,'#6b7d83'],['Faye, Locandiera',-9,8,'#66517d','innkeeper'],['Iven',0,16,'#777b87']];
-    for(let i=0;i<Math.min(known.length,Math.max(3,names.length));i++){const k=known[i];addNpc(k[0],[k[1],k[2]],k[3],k[4]||'npc');}
+    for(let i=0;i<Math.min(known.length,Math.max(3,names.length));i++){const k=known[i],position=content?.redCrossStory&&Number(step.chapter_number)===2&&k[0]==='Referente logistico'?[24,17]:[k[1],k[2]];addNpc(k[0],position,k[3],k[4]||'npc');}
     if(step.chapter_number<=3&&!content?.redCrossStory)addNpc('Bren, Mercante',[0,13],'#a47a51','merchant');
-    const extraNames=names.filter(n=>!known.some(k=>k[0]===n)).slice(0,3);
+    const extraNames=names.filter(n=>!known.some(k=>redCrossPersonName(k[0])===redCrossPersonName(n))).slice(0,3);
     if(content?.redCrossStory){
       const positions=[[-12,-1],[12,-2],[0,26]];
       extraNames.forEach((name,index)=>addNpc(name,positions[index],speakerColor(name)));
@@ -1582,6 +1592,8 @@ function rebuildActors(step){
   } else {
     names.slice(0,5).forEach((n,i)=>{const a=i*Math.PI*2/Math.max(1,Math.min(5,names.length));addNpc(n,[Math.cos(a)*5,Math.sin(a)*5+1],speakerColor(n));});
   }
+  if(content?.redCrossStory&&Number(step.chapter_number)===3&&!interactables.some(item=>item.name==='Antonella'))addNpc('Antonella',[2,22],'#9b6150');
+  if(content?.redCrossStory&&Number(step.chapter_number)===4&&!interactables.some(item=>item.name==='Angela'))addNpc('Angela',[-14,11],'#238c85');
   if(content?.redCrossStory)addWorldDiscoveries();
   addObjective(step);
   if(playerRoot){playerRoot.position.y=.9;playerVerticalVelocity=0;jumpRequested=false;sprintFromDoubleTap=false;}
@@ -1747,7 +1759,7 @@ function interactWithHouseFeature(item){
 }
 function showContextualDialogue(speaker,text){
   contextualDialogue=true;dialogueVisible=true;
-  $('dialogueSpeaker').textContent=speaker||'Appunti';$('dialogueText').textContent=text||'La casa conserva i segni di chi la abita.';
+  $('dialogueSpeaker').textContent=redCrossPersonName(speaker||'Appunti');$('dialogueText').textContent=text||'La casa conserva i segni di chi la abita.';
   $('dialogueCount').textContent='Vita quotidiana';$('dialogueHint').textContent='Premi E o clicca continua';$('dialogueNext').textContent='Chiudi ↗';
   $('dialogueBox').classList.remove('hidden');$('questCompleteBar').classList.add('hidden');
 }
@@ -1755,7 +1767,7 @@ function advanceDialogue(){
   if(contextualDialogue){contextualDialogue=false;dialogueVisible=false;$('dialogueBox').classList.add('hidden');return;}
   if(!currentStep)return;const lines=Array.isArray(currentStep.dialogue)?currentStep.dialogue:[];
   if(dialogueIndex>=lines.length){$('dialogueBox').classList.add('hidden');dialogueVisible=false;dialogueFinished=true;afterNarrative();return;}
-  const raw=lines[dialogueIndex];const speaker=Array.isArray(raw)?raw[0]:(raw.speaker||'Narratore');const text=Array.isArray(raw)?raw[1]:(raw.text||raw.line||String(raw));
+  const raw=lines[dialogueIndex];const speaker=redCrossPersonName(Array.isArray(raw)?raw[0]:(raw.speaker||'Narratore'));const text=Array.isArray(raw)?raw[1]:(raw.text||raw.line||String(raw));
   $('dialogueSpeaker').textContent=speaker;$('dialogueText').textContent=text;$('dialogueCount').textContent=`${dialogueIndex+1} / ${lines.length}`;$('dialogueHint').textContent='Premi E o clicca continua';$('dialogueNext').textContent=dialogueIndex===lines.length-1?'Concludi dialogo ↗':'Continua ↗';
   dialogueIndex++;dialogueVisible=true;$('dialogueBox').classList.remove('hidden');$('questCompleteBar').classList.add('hidden');
 }
@@ -1779,9 +1791,9 @@ const MISSION_GEAR=[
 ];
 const MISSION_BINS=[['coordination','Tavolo di coordinamento'],['materials','Cassa materiali'],['welcome','Cassa accoglienza']];
 const MISSION_CREW=[
-  {task:'Controllo delle dotazioni',person:'Referente logistico'},
+  {task:'Controllo delle dotazioni',person:'Sara'},
   {task:'Accoglienza e ascolto',person:'Referente accoglienza'},
-  {task:'Indicazioni del turno',person:'Coordinatrice'}
+  {task:'Indicazioni del turno',person:'Angela'}
 ];
 const MISSION_FOOD=[
   {name:'Pasta',detail:'Etichetta leggibile · quantità sul cartellino: 6',shelf:'dry',count:6},
@@ -1817,9 +1829,9 @@ const MISSION_UDS=[
   ]}
 ];
 const MISSION_MEDICAL_TASKS=[
-  {task:'Preparare il materiale non sanitario',person:'Referente logistico'},
+  {task:'Preparare il materiale non sanitario',person:'Sara'},
   {task:'Accogliere e condividere le informazioni',person:'Referente accoglienza'},
-  {task:'Confermare le indicazioni del servizio',person:'Coordinatrice'}
+  {task:'Confermare le indicazioni del servizio',person:'Angela'}
 ];
 const MISSION_ROUTE=['Comitato','Punto di accoglienza','Destinazione indicata dal referente'];
 const MISSION_HANDOVER=[
@@ -2173,7 +2185,7 @@ function selectChapter6Variant(){
   stepIndex=route.findIndex(s=>s.chapter_number===6);if(stepIndex<0)stepIndex=route.findIndex(s=>s.chapter_number>5);
   toast('Il tuo percorso nella cronaca sarà: '+({respected:'dialogo e fiducia',wanted:'ricostruire la fiducia',shadow:'coordinamento di squadra'}[variant]));
 }
-function showEnding(){currentStep=null;game=null;titleDie=null;inputLocked=true;$('chapterCurtain').classList.remove('hidden');$('curtainArc').textContent='CROCE ROSSA';$('curtainTitle').textContent='6 TAPPE · UNA SQUADRA';$('curtainSubtitle').textContent='Il prossimo turno comincia insieme.';setTimeout(()=>{ $('chapterCurtain').classList.add('hidden');$('dialogueBox').classList.remove('hidden');$('dialogueSpeaker').textContent='Coordinatrice/Coordinatore';$('dialogueText').textContent='Hai concluso tutte le tappe e raccolto i distintivi! Le attività della Croce Rossa continuano ogni giorno nelle comunità. Quelle reali richiedono formazione, autorizzazione e indicazioni del Comitato.';$('dialogueCount').textContent='FINE DEL TURNO';$('dialogueHint').textContent='Bravissima/o!';$('dialogueNext').textContent='Torna al titolo';inputLocked=false;},1800);}
+function showEnding(){currentStep=null;game=null;titleDie=null;inputLocked=true;$('chapterCurtain').classList.remove('hidden');$('curtainArc').textContent='CROCE ROSSA';$('curtainTitle').textContent='6 TAPPE · UNA SQUADRA';$('curtainSubtitle').textContent='Il prossimo turno comincia insieme.';setTimeout(()=>{ $('chapterCurtain').classList.add('hidden');$('dialogueBox').classList.remove('hidden');$('dialogueSpeaker').textContent=redCrossPersonName('Coordinatrice/Coordinatore');$('dialogueText').textContent='Hai concluso tutte le tappe e raccolto i distintivi! Le attività della Croce Rossa continuano ogni giorno nelle comunità. Quelle reali richiedono formazione, autorizzazione e indicazioni del Comitato.';$('dialogueCount').textContent='FINE DEL TURNO';$('dialogueHint').textContent='Bravissima/o!';$('dialogueNext').textContent='Torna al titolo';inputLocked=false;},1800);}
 function startStep(showCurtain=false){
   currentStep=currentRouteStep();if(!currentStep){showEnding();return;}game.player.flags=game.player.flags||{};game.stepIndex=stepIndex;dialogueIndex=0;dialogueVisible=false;dialogueFinished=false;contextualDialogue=false;pendingChoice=false;battleResolved=false;currentBattle=null;currentSideQuest=null;
   if(Number(currentStep.chapter_number||1)>=3)game.player.flags.dieSymbolsRevealed=true;
@@ -2982,6 +2994,27 @@ $('introGuideTabs').addEventListener('click',event=>{const button=event.target.c
 $('introBackBtn').addEventListener('click',previousIntro);$('introSkipBtn').addEventListener('click',skipIntro);$('introNextBtn').addEventListener('click',nextIntro);
 $('nearPrompt').addEventListener('click',interact);
 $('touchInteractBtn').addEventListener('click',interact);
+let touchLookPointer=null,touchLookLast=null;
+$('touchLookPad').addEventListener('pointerdown',event=>{
+  event.preventDefault();event.stopPropagation();
+  if(deviceMode!=='mobile'||!game||!camera||inputLocked||dialogueVisible||currentBattle||pendingChoice||!$('sidePanel').classList.contains('hidden')||!$('pauseScreen').classList.contains('hidden'))return;
+  touchLookPointer=event.pointerId;touchLookLast={x:event.clientX,y:event.clientY};
+  $('touchLookPad').classList.add('active');$('touchLookPad').setPointerCapture(event.pointerId);
+});
+$('touchLookPad').addEventListener('pointermove',event=>{
+  if(event.pointerId!==touchLookPointer||!camera||!touchLookLast)return;
+  event.preventDefault();
+  const dx=event.clientX-touchLookLast.x,dy=event.clientY-touchLookLast.y;
+  camera.alpha-=dx*.008;camera.beta=clamp(camera.beta+dy*.006,.48,1.42);
+  touchLookLast={x:event.clientX,y:event.clientY};
+});
+const releaseTouchLook=event=>{
+  if(event.pointerId!==touchLookPointer)return;
+  touchLookPointer=null;touchLookLast=null;$('touchLookPad').classList.remove('active');
+};
+$('touchLookPad').addEventListener('pointerup',releaseTouchLook);
+$('touchLookPad').addEventListener('pointercancel',releaseTouchLook);
+$('touchLookPad').addEventListener('lostpointercapture',releaseTouchLook);
 $('quickHelpBtn').addEventListener('click',()=>toggleQuickHelp());
 $('quickHelpCloseBtn').addEventListener('click',()=>toggleQuickHelp(false));
 $('quickHelpDoneBtn').addEventListener('click',()=>toggleQuickHelp(false));
@@ -3091,7 +3124,7 @@ function keyboardBindingLabel(action){return (keyboardBindings[action]||[]).map(
 function gamepadBindingLabel(action){const n=gamepadBindings[action];return GAMEPAD_BUTTON_LABELS[n]||('Pulsante '+(n+1));}
 function refreshControlsHint(){
   const el=$('controlsHint');if(!el)return;
-  if(deviceMode==='mobile'){el.textContent='Tieni premute le frecce sullo schermo per muoverti. Tocca Parla per interagire.';return;}
+  if(deviceMode==='mobile'){el.textContent='Muovi le frecce a sinistra e trascina Guarda intorno per ruotare la visuale. Tocca Parla per interagire.';return;}
   if(deviceMode==='quest'){el.textContent='Stick sinistro: muovi · Grilletto destro: interagisci · Muovi la testa per guardarti intorno.';return;}
   el.innerHTML=`<span>${escapeHtml(keyboardBindingLabel('moveForward'))} / ${escapeHtml(keyboardBindingLabel('moveLeft'))}…</span> Muovi <span>${escapeHtml(keyboardBindingLabel('interact'))}</span> Parla <span>M</span> Mappa <span>${escapeHtml(keyboardBindingLabel('pause'))}</span> Pausa`;
 }

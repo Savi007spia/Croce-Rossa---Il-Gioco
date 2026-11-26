@@ -758,6 +758,7 @@
 
 .near-prompt{max-width:min(420px,calc(100vw - 32px));font-size:clamp(16px,2vw,20px);line-height:1.25}
 .touch-controls{display:none}
+.touch-look-pad{display:none}
 .quick-help-trigger{position:absolute;right:16px;top:50%;z-index:8;padding:10px 15px;border:1px solid rgba(255,235,174,.65);border-radius:24px;background:rgba(22,25,30,.94);color:#fff3c9;font:700 15px 'Crimson Pro',Georgia,serif;box-shadow:0 4px 18px rgba(0,0,0,.4)}
 .game-ui .quick-help{position:absolute;z-index:20;top:50%;left:50%;width:min(540px,calc(100vw - 28px));max-height:min(86vh,720px);overflow:auto;transform:translate(-50%,-50%);padding:24px;background:linear-gradient(145deg,rgba(18,24,31,.99),rgba(7,11,16,.99));border:2px solid rgba(255,222,143,.82);border-radius:18px;box-shadow:0 18px 70px rgba(0,0,0,.75);color:#f7f3e7;pointer-events:auto}
 .quick-help-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
@@ -780,6 +781,10 @@
   .touch-pad button:nth-child(3){grid-column:2;grid-row:2}
   .touch-pad button:nth-child(4){grid-column:3;grid-row:2}
   .touch-interact{pointer-events:auto}
+  .touch-look-pad{position:absolute;right:14px;bottom:184px;display:flex;width:104px;height:104px;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:3px solid #fff;border-radius:50%;background:rgba(23,108,169,.88);color:#fff;box-shadow:0 4px 0 #0a446c,0 7px 16px rgba(5,49,76,.35);pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none}
+  .touch-look-pad span{font:36px Arial,sans-serif;line-height:1}
+  .touch-look-pad small{font:800 9px "Trebuchet MS",Arial,sans-serif;text-align:center}
+  .touch-look-pad.active{background:#ef233c;transform:scale(.96)}
   .controls-hint{display:none}
   .world-clock{display:none}
   .objective-card{top:102px;left:12px;max-width:calc(100vw - 24px);font-size:16px}

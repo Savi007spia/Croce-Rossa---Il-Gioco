@@ -19,7 +19,7 @@ Serve Python 3 per avviare il piccolo server locale e una connessione Internet p
 ### Dispositivi
 
 - **Computer:** apri il gioco con `AVVIA_WEB.bat`; usa tastiera e mouse oppure un controller compatibile.
-- **Telefono o tablet:** collega PC e dispositivo alla stessa rete Wi-Fi, avvia `AVVIA_WEB.bat` sul PC e apri sul telefono uno degli indirizzi LAN stampati nella finestra del server (per esempio `http://192.168.1.20:8765/index.html`). Se Windows chiede il permesso per Python, consentilo solo sulle reti private di fiducia. Poi scegli la modalità telefono/tablet. Il server condivide solo i file necessari al gioco.
+- **Telefono o tablet:** collega PC e dispositivo alla stessa rete Wi-Fi, avvia `AVVIA_WEB.bat` sul PC e apri sul telefono uno degli indirizzi LAN stampati nella finestra del server (per esempio `http://192.168.1.20:8765/index.html`). Se Windows chiede il permesso per Python, consentilo solo sulle reti private di fiducia. Poi scegli la modalità telefono/tablet. Muovi le frecce a sinistra per camminare e trascina il comando **Guarda intorno** a destra per ruotare la telecamera: la visuale segue il personaggio mentre si sposta. Il server condivide solo i file necessari al gioco.
 - **Meta Quest 3:** per la modalità VR, pubblica la cartella web su un indirizzo **HTTPS** raggiungibile dal browser Meta Quest, aprilo nel visore e scegli Meta Quest 3. Il server locale stampa un link HTTP per la rete Wi-Fi, ma quel link non abilita WebXR: la VR richiede HTTPS, un browser compatibile e il consenso dopo aver premuto **Entra nel visore**. Se l'avvio fallisce, il messaggio distingue gli errori di sicurezza da quelli di supporto WebXR, incluse le funzioni `local-floor` e `dom-overlay`. Chiedere a un adulto di preparare il visore e l'area di gioco.
 
 ## Funzioni mantenute
@@ -163,6 +163,7 @@ La mappa mostra soltanto la scena e il capitolo in corso: non anticipa le aree s
 - Sette punti informativi interattivi raccontano i servizi e le attenzioni della squadra; le scoperte restano salvate e il Diario ne mostra il totale.
 - Il punto della tappa ora è segnalato con un cartello di servizio; persone e indicazioni visive sono state adattate all'ambientazione.
 - L'area Croce Rossa si svolge in luce diurna per mantenere chiari il percorso e i punti di interesse.
+- Le referenti del quartiere hanno nomi propri: Angela per l'Unità di Strada, Sara per le eccedenze e Antonella per la distribuzione viveri. Su mobile, un comando touch dedicato ruota la visuale mentre la telecamera segue il personaggio.
 
 ## Stato e limiti trasparenti
 
