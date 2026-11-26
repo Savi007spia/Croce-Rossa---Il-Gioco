@@ -20,17 +20,18 @@ Serve Python 3 per avviare il piccolo server locale e una connessione Internet p
 
 - **Computer:** apri il gioco con `AVVIA_WEB.bat`; usa tastiera e mouse oppure un controller compatibile.
 - **Telefono o tablet:** collega PC e dispositivo alla stessa rete Wi-Fi, avvia `AVVIA_WEB.bat` sul PC e apri sul telefono uno degli indirizzi LAN stampati nella finestra del server (per esempio `http://192.168.1.20:8765/index.html`). Se Windows chiede il permesso per Python, consentilo solo sulle reti private di fiducia. Poi scegli la modalità telefono/tablet. Il server condivide solo i file necessari al gioco.
-- **Meta Quest 3:** per la modalità VR, pubblica la cartella web su un indirizzo **HTTPS** raggiungibile dal browser Meta Quest, aprilo nel visore e scegli Meta Quest 3. Il server locale stampa un link HTTP per la rete Wi-Fi, ma quel link non abilita WebXR: la VR richiede HTTPS, un browser compatibile e il consenso dopo aver premuto **Entra nel visore**. Chiedere a un adulto di preparare il visore e l'area di gioco.
+- **Meta Quest 3:** per la modalità VR, pubblica la cartella web su un indirizzo **HTTPS** raggiungibile dal browser Meta Quest, aprilo nel visore e scegli Meta Quest 3. Il server locale stampa un link HTTP per la rete Wi-Fi, ma quel link non abilita WebXR: la VR richiede HTTPS, un browser compatibile e il consenso dopo aver premuto **Entra nel visore**. Se l'avvio fallisce, il messaggio distingue gli errori di sicurezza da quelli di supporto WebXR, incluse le funzioni `local-floor` e `dom-overlay`. Chiedere a un adulto di preparare il visore e l'area di gioco.
 
 ## Funzioni mantenute
 
 - Sei tappe giocabili brevi e un catalogo facoltativo di attività attuali.
 - Quattro ruoli di volontariato con divise e illustrazioni dedicate. I vecchi salvataggi vengono adattati ai nuovi ruoli e alle sei tappe.
+- Albero delle abilità rinnovato con percorsi di volontariato per i quattro ruoli; i punti investiti nei vecchi talenti vengono restituiti al primo caricamento.
 - Scelta iniziale del dispositivo, comandi contestuali per PC e mobile e modalità immersiva WebXR con controller per Quest.
 - Album di sei distintivi, uno per ogni tappa completata; la guida spiega come ottenerli.
 - Turni secondari su raccolta, distribuzione alimentare, UDS, assistenza, trasporto, accoglienza, salute e protezione civile.
-- Esplorazione 3D, dialoghi, scelte, inventario, scheda, equipaggiamento, multiplayer e quattro slot locali.
-- Quartiere contemporaneo con Comitato, magazzino, punto di ascolto, area mezzi, distribuzione e giardino; sette luoghi interattivi si raccolgono nel Diario.
+- Esplorazione 3D, dialoghi, scelte, inventario, scheda, equipaggiamento, multiplayer fino a 12 giocatori e quattro slot locali.
+- Quartiere contemporaneo con Comitato esplorabile e area di recupero nel gioco, magazzino collegato all’inventario e punto UDS con tavoli, frigoriferi e volontari intenti a preparare il turno. La postazione di distribuzione permette di ripetere la relativa prova.
 - Le prove sono simulazioni di gioco e non descrivono procedure di soccorso reali.
 
 La cronaca sostitutiva e i dati delle missioni sono in `data/red_cross_story.json`; l'archivio di supporto alle meccaniche resta in `data/chronicles_content.json`.
@@ -71,7 +72,7 @@ La cronaca sostitutiva e i dati delle missioni sono in `data/red_cross_story.jso
 
 ## Mappa, mondo e collisioni
 
-La mappa mostra soltanto la scena e il capitolo in corso: non anticipa le aree successive. In cooperativa le posizioni di entrambi i Portatori si aggiornano in tempo reale; in solitaria mostra la posizione del giocatore nell'area locale. Il personaggio applica la gravità e collide con il terreno e le strutture solide. Strade, tetti e facciate hanno dettagli e materiali procedurali più ricchi, con illuminazione ambientale per le lanterne. Le grandi formazioni rocciose sferiche decorative sono state rimosse.
+La mappa mostra soltanto la scena e il capitolo in corso: non anticipa le aree successive. In cooperativa le posizioni dei compagni connessi si aggiornano in tempo reale; in solitaria mostra la posizione del giocatore nell'area locale. Il personaggio applica la gravità e collide con il terreno e le strutture solide. Strade, tetti e facciate hanno dettagli e materiali procedurali più ricchi, con illuminazione ambientale per le lanterne. Le grandi formazioni rocciose sferiche decorative sono state rimosse.
 
 ## Novità alpha 0.1.8
 
@@ -205,5 +206,5 @@ La build originale 2D non viene modificata e i salvataggi web sono separati da q
 - Il ciclo solare usa un modello stagionale approssimato per latitudini temperate dell’emisfero nord, non una posizione GPS.
 
 
-## Multiplayer online alpha 0.1.7
-La modalità sperimentale supporta due giocatori via PeerJS/WebRTC: l’host crea una stanza e condivide il codice, mentre l’altro giocatore si unisce con il codice. L’host conserva il salvataggio principale in locale. Consulta `NOTE_VERSIONE_0.1.6.md` per i limiti e i requisiti di rete.
+## Multiplayer online (modalità sperimentale)
+La modalità sperimentale supporta fino a **12 giocatori totali** (host + 11 ospiti) via PeerJS/WebRTC. L’host crea una stanza e condivide il codice; gli ospiti si collegano all’host, che inoltra le posizioni e conserva il salvataggio principale in locale. La mappa mostra i compagni connessi. Il limite effettivo può essere inferiore in base a dispositivo, rete, firewall e disponibilità di connessioni dirette; non è una garanzia di prestazioni su ogni rete.

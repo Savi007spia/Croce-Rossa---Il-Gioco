@@ -30,6 +30,8 @@ for required_id in ['deviceScreen','deviceTitle','titleScreen','changeDeviceBtn'
 assert len(re.findall(r'data-device-mode="(?:pc|mobile|quest)"',html))==3, 'PC, mobile, and Quest device choices must be present'
 for token in ["function chooseDeviceMode(","function prepareXRExperience(","enterXRAsync('immersive-vr'",'domOverlay:{root:document.body}','function pollXRControllers(','earnedBadges','Album dei distintivi']:
     assert token in js, f'Missing device or child-engagement feature {token}'
+assert 'function xrFailureMessage(error)' in js, 'WebXR failures must identify the actual cause'
+assert 'Verifica HTTPS e il supporto WebXR del browser.' not in js, 'WebXR errors must not mislabel every failure as HTTPS'
 assert '#143b58' in (ROOT/'styles.css').read_text(encoding='utf-8'), 'Intro and explanation text must use the high-contrast dark color'
 for required_id in ['mapBackdrop','areaMapTab','worldMapTab','areaMapView','worldMapView','worldMapContent']:
     assert required_id in htmlids, f'Missing map UI id {required_id}'
@@ -61,6 +63,12 @@ for token in ['function createHouseInterior(home)','function enterHouse(item)','
     assert token in js, f'Missing explorable village feature {token}'
 for token in ['function buildRedCrossWorld()','function makeCivicBuilding(','const RED_CROSS_DISCOVERIES=','function addWorldDiscoveries()','worldDiscovery_','Esplorazioni del quartiere','PUNTO SERVIZIO','content?.redCrossStory?630','content?.redCrossStory&&!isPlayer']:
     assert token in js, f'Missing alpha 0.1.20 Red Cross world feature {token}'
+for token in ['const MP_MAX_PLAYERS=12','mpConnections=new Map()','function mpConnectedClientCount()',"function mpBroadcast(message,excludePeer='')","function mpMoveRemote(pos,name,id='host')","type:'peerLeft'",'maxPlayers:MP_MAX_PLAYERS']:
+    assert token in js, f'Missing multiplayer capacity or peer handling: {token}'
+for token in ['const RED_CROSS_SKILL_TREE=','function migrateSkillTree(player)','function skillStatBonuses(','function purchaseSkill(id)']:
+    assert token in js, f'Missing role-based skill progression: {token}'
+for token in ["makeBox(name+'_sign'","CreatePlane(name+'_sign_text'","signText.position.set(x,h+.13,front+.92)","signText.rotation.y=Math.PI","parent=worldRoot;\n    houseEntrances.push({kind:'house'","Object.assign(model.metadata.animation,{roaming:true,roamIntensity:.38})"]:
+    assert token in js, f'Missing civic building rendering or stable staff animation: {token}'
 assert 'exteriorInteractables=interactables.filter' in js and 'interactables=(exteriorInteractables||houseEntrances).filter' in js, 'Leaving a house must restore exterior NPCs and objectives'
 for token in ['profile.boss=isBoss','profile.miniBoss=isMiniBoss','function setBattleEnemyAction(action)','action===\'attack\'','action===\'guard\'','enemy_aura','enemy_ring']:
     assert token in js, f'Missing alpha 0.1.15 boss visuals or animations: {token}'

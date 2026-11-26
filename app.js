@@ -25,6 +25,37 @@ const CLASS_UNLOCK_FALLBACKS={
   'Arconte delle Anime':{level:40,mastery_class:"Tessitore d'Anime",mastery:10},
   'Templare Astrale':{level:30,mastery_class:'Paladino',mastery:10}
 };
+const RED_CROSS_SKILL_TREE={
+  service_safety:{name:'Servizio in sicurezza',branch:'Soccorritore',role:'Soccorritore',max_rank:3,cost:1,desc:'Nelle simulazioni, aumenta la preparazione e la protezione della squadra.'},
+  supportive_presence:{name:'Presenza di supporto',branch:'Soccorritore',role:'Soccorritore',max_rank:3,cost:1,requires:{service_safety:1},desc:'Rafforza la capacità della squadra di offrire sostegno rispettoso.'},
+  team_wellbeing:{name:'Benessere della squadra',branch:'Soccorritore',role:'Soccorritore',max_rank:3,cost:1,requires:{supportive_presence:2},desc:'Aumenta l’energia di gioco e la collaborazione durante le attività.'},
+  recovery_and_referral:{name:'Recupero e orientamento',branch:'Soccorritore',role:'Soccorritore',max_rank:2,cost:2,requires:{team_wellbeing:2},desc:'Migliora il recupero nelle simulazioni e l’orientamento verso il referente.'},
+  active_listening:{name:'Ascolto attivo',branch:'Operatore sociale',role:'Operatore sociale',max_rank:3,cost:1,desc:'Aiuta a comprendere le richieste e a scegliere risposte rispettose.'},
+  respectful_communication:{name:'Comunicazione rispettosa',branch:'Operatore sociale',role:'Operatore sociale',max_rank:3,cost:1,requires:{active_listening:1},desc:'Rafforza la comunicazione chiara e l’attenzione alla dignità delle persone.'},
+  privacy_respect:{name:'Rispetto della riservatezza',branch:'Operatore sociale',role:'Operatore sociale',max_rank:2,cost:1,requires:{active_listening:2},desc:'Favorisce scelte prudenti nella gestione delle informazioni di gioco.'},
+  service_orientation:{name:'Orientamento ai servizi',branch:'Operatore sociale',role:'Operatore sociale',max_rank:3,cost:2,requires:{respectful_communication:2},desc:'Migliora la capacità di individuare il servizio adatto insieme al referente.'},
+  inventory_check:{name:'Controllo delle dotazioni',branch:'Logista',role:'Logista',max_rank:3,cost:1,desc:'Aumenta l’attenzione nel contare e preparare i materiali di gioco.'},
+  stock_rotation:{name:'Ordine delle scorte',branch:'Logista',role:'Logista',max_rank:3,cost:1,requires:{inventory_check:1},desc:'Migliora la gestione simulata delle scorte e delle risorse.'},
+  service_planning:{name:'Pianificazione del servizio',branch:'Logista',role:'Logista',max_rank:3,cost:1,desc:'Aiuta a preparare percorsi e materiali per il turno.'},
+  resource_coordination:{name:'Coordinamento delle risorse',branch:'Logista',role:'Logista',max_rank:3,cost:2,requires:{service_planning:2},desc:'Migliora la distribuzione delle risorse tra i membri della squadra.'},
+  preparedness:{name:'Preparazione condivisa',branch:'Volontario di Protezione Civile',role:'Volontario di Protezione Civile',max_rank:3,cost:1,desc:'Rafforza la preparazione della squadra nelle esercitazioni di gioco.'},
+  information_verification:{name:'Informazioni verificate',branch:'Volontario di Protezione Civile',role:'Volontario di Protezione Civile',max_rank:3,cost:1,requires:{preparedness:1},desc:'Premia l’attenzione alle informazioni confermate e alle indicazioni del referente.'},
+  team_coordination:{name:'Coordinamento di squadra',branch:'Volontario di Protezione Civile',role:'Volontario di Protezione Civile',max_rank:3,cost:1,requires:{information_verification:2},desc:'Rafforza la collaborazione e la pianificazione condivisa.'},
+  local_knowledge:{name:'Conoscenza del quartiere',branch:'Volontario di Protezione Civile',role:'Volontario di Protezione Civile',max_rank:2,cost:2,requires:{team_coordination:2},desc:'Aiuta la squadra a orientarsi tra i luoghi e i servizi della comunità.'}
+};
+const LEGACY_SKILL_EFFECT_MAP={
+  fleet_step:'service_planning',arcane_core:'service_orientation',fortune_thread:'active_listening',
+  unbroken_will:'preparedness',destiny_reservoir:'team_coordination',loaded_fate:'team_coordination',
+  hunter_instinct:'inventory_check',shadow_bond:'active_listening',ancient_vigor:'supportive_presence',
+  fourfold_mastery:'team_coordination',fracture_control:'service_safety',umbra_resonance:'team_coordination',
+  ancient_loot:'stock_rotation',destiny_overcharge:'resource_coordination',umbra_authority:'resource_coordination',
+  soul_thread:'supportive_presence',black_flame:'information_verification',monarch_domain:'local_knowledge',
+  self_anchor:'team_wellbeing',remnant_bond:'service_orientation',soul_dice:'information_verification',
+  identity_luck:'active_listening',null_resistance:'preparedness',shadow_sovereignty:'resource_coordination',
+  realm_forging:'service_planning'
+};
+const SKILL_TREE_VERSION=2;
+let legacySkillTree={};
 let content = null, engine = null, scene = null, camera = null, worldRoot = null, actorRoot = null;
 let playerRoot = null, playerParts = [], playerModel = null, humanoidModels = [], titleDie = null, titleDieLabels = [], battleDie = null;
 let interactables = [], exteriorInteractables = null, motes = [], currentSceneKey = '', currentStep = null, currentSlot = -1;
@@ -42,7 +73,8 @@ let introGuideMode = 'controls';
 let controlsGuideMode='keyboard',mapSelectedWorld=1;
 let classArtCounter = 0;
 let lastMoteUpdateAt=0,lastNpcAnimationAt=0,lastPromptUpdateAt=0,lastRadarUpdateAt=0,lastNearPromptText='',skySystemElapsed=0;
-let mpPeer=null,mpConnection=null,mpRole='offline',mpRoomCode='',mpPendingAction=null,mpPendingCode='',mpRemoteMarker=null,mpLastPositionSend=0,mpLastSnapshotSend=0,mpApplyingSnapshot=false,mpConnectionTimer=null;
+const MP_MAX_PLAYERS=12,mpConnections=new Map(),mpRemotePlayers=new Map();
+let mpPeer=null,mpConnection=null,mpRole='offline',mpRoomCode='',mpPendingAction=null,mpPendingCode='',mpLastPositionSend=0,mpLastSnapshotSend=0,mpApplyingSnapshot=false,mpConnectionTimer=null;
 const pavingMaterials = new Map();
 let playerVerticalVelocity=0,jumpRequested=false,sprintFromDoubleTap=false,lastForwardTapAt=0;
 let hubMode=false,hubReturnPosition=null,hubReturnCamera=null;
@@ -302,6 +334,8 @@ function applyRedCrossStory(source){
   const story=localizeStoryStrings(source);
   if(!Array.isArray(story.playableChapters)||story.playableChapters.length!==6)throw new Error('La campagna dei turni deve contenere sei tappe.');
   if(!Array.isArray(story.missions)||!story.missions.length)throw new Error('Il catalogo delle attività di volontariato è vuoto.');
+  legacySkillTree={...(content.registries.SKILL_TREE||{})};
+  content.registries.SKILL_TREE=RED_CROSS_SKILL_TREE;
   const sourceStep=content.chapters.find(step=>Number(step.chapter_number)===1);
   if(!sourceStep)throw new Error('Scena base del Comitato non disponibile.');
   content.playableChapters=story.playableChapters.map(([number,title,focus,task,missionIds])=>{
@@ -546,6 +580,13 @@ function refreshXRStatus(message=''){
   else if(!xrExperience?.baseExperience){status.textContent='Sto preparando il supporto per il visore…';button.disabled=true;}
   else{status.textContent='Indossa il visore e seleziona “Entra nel visore”.';button.disabled=false;}
 }
+function xrFailureMessage(error){
+  if(error?.name==='SecurityError')return 'WebXR è stato bloccato per motivi di sicurezza. Apri il gioco via HTTPS nel browser del visore.';
+  if(error?.name==='NotAllowedError')return 'Il browser o il visore ha negato l’accesso WebXR. Riprova dal pulsante nel browser del visore e consenti l’avvio.';
+  if(error?.name==='NotSupportedError')return 'Il browser non supporta la sessione o una funzione WebXR richiesta (immersive-vr, local-floor o dom-overlay). Prova il browser Meta Quest aggiornato.';
+  const details=error?.name||error?.message?` (${error.name||'errore'}${error.message?`: ${error.message}`:''})`:'';
+  return `Avvio WebXR non riuscito.${details} Controlla il browser e riprova.`;
+}
 async function prepareXRExperience(){
   if(!navigator.xr||!window.isSecureContext){refreshXRStatus();return;}
   try{
@@ -569,7 +610,7 @@ async function prepareXRExperience(){
     refreshXRStatus();
   }catch(error){
     console.error('Inizializzazione WebXR non riuscita:',error);
-    refreshXRStatus('Non riesco ad avviare il visore. Controlla il browser e riprova.');
+    refreshXRStatus(xrFailureMessage(error));
   }
 }
 async function enterQuestVR(){
@@ -582,7 +623,7 @@ async function enterQuestVR(){
     });
   }catch(error){
     console.error('Avvio della sessione VR non riuscito:',error);
-    $('xrStatus').textContent='Il visore non ha avviato la sessione. Verifica HTTPS e il supporto WebXR del browser.';
+    $('xrStatus').textContent=xrFailureMessage(error);
     $('enterXRBtn').disabled=false;
   }
 }
@@ -698,12 +739,13 @@ function makeHouse(name,x,z,wallHex,roofHex,opts={}){
 function createHouseInterior(home){
   if(houseInteriorRoot)houseInteriorRoot.dispose(false,true);
   houseInteriorRoot=new BABYLON.TransformNode('house_interior_'+home.id,scene);
-  const empty=home.type==='empty',w=12,d=11,h=3.8,front=5.5;
-  const wall=mat('interior_wall_'+home.id,empty?'#4b4743':home.type==='forge'?'#51433d':'#796958');
+  const empty=home.type==='empty',civicRoom=['committee','uds','warehouse','clinic'].includes(home.type),w=12,d=11,h=3.8,front=5.5;
+  const civicWall=home.type==='committee'||home.type==='clinic'?'#e4ece9':home.type==='uds'?'#dce8e4':'#e5e0d4';
+  const wall=mat('interior_wall_'+home.id,empty?'#4b4743':civicRoom?civicWall:home.type==='forge'?'#51433d':'#796958');
   const wood=mat('interior_wood_'+home.id,empty?'#352c28':'#51392d');
-  const floor=mat('interior_floor_'+home.id,empty?'#534b43':'#78583e');
+  const floor=mat('interior_floor_'+home.id,empty?'#534b43':civicRoom?'#c9d4d1':'#78583e');
   const trim=mat('interior_trim_'+home.id,empty?'#302a28':'#382a28');
-  const plaster=mat('interior_plaster_'+home.id,empty?'#5b554f':'#a08a6b');
+  const plaster=mat('interior_plaster_'+home.id,empty?'#5b554f':civicRoom?'#f4f6f2':'#a08a6b');
   const floorMesh=BABYLON.MeshBuilder.CreateGround('interior_floor',{width:w,height:d},scene);floorMesh.material=floor;floorMesh.parent=houseInteriorRoot;floorMesh.checkCollisions=true;
   for(let z=-d/2+.3;z<d/2;z+=.75){
     makeBox('interior_floor_seam',[0,.018,z],[w-.12,.025,.025],mat('interior_floor_seam_mat_'+home.id,empty?'#332c29':'#513a30'),houseInteriorRoot,null,false);
@@ -729,17 +771,19 @@ function createHouseInterior(home){
     makeBox('interior_window_frame_v',[x,2.55,-1.15],[.16,1.55,.12],wood,houseInteriorRoot,null,false);
     makeBox('interior_window_frame_v',[x,2.55,.65],[.16,1.55,.12],wood,houseInteriorRoot,null,false);
   }
-  makeBox('interior_rug',[0,.035,.15],[4.2,.05,2.8],mat('interior_rug_mat_'+home.id,empty?'#5b5148':home.type==='inn'?'#75506a':home.type==='forge'?'#66534b':'#78504a'),houseInteriorRoot,null,false);
-  makeBox('interior_rug_border',[0,.064,.15],[3.9,.018,2.5],mat('interior_rug_border_mat_'+home.id,empty?'#777064':'#c3a16b'),houseInteriorRoot,null,false);
-  makeBox('interior_table',[-2.2,.88,-.35],[2.5,.2,1.45],wood,houseInteriorRoot,null,true);
-  for(const x of [-3.15,-1.25])for(const z of [-.8,.1])makeBox('interior_table_leg',[x,.44,z],[.16,.88,.16],wood,houseInteriorRoot,null,true);
-  makeBox('interior_table_top',[ -2.2,1.01,-.35],[2.65,.08,1.55],mat('interior_table_top_'+home.id,empty?'#6b6053':'#694a35'),houseInteriorRoot,null,false);
-  if(!empty){
+  if(!civicRoom){
+    makeBox('interior_rug',[0,.035,.15],[4.2,.05,2.8],mat('interior_rug_mat_'+home.id,empty?'#5b5148':home.type==='inn'?'#75506a':home.type==='forge'?'#66534b':'#78504a'),houseInteriorRoot,null,false);
+    makeBox('interior_rug_border',[0,.064,.15],[3.9,.018,2.5],mat('interior_rug_border_mat_'+home.id,empty?'#777064':'#c3a16b'),houseInteriorRoot,null,false);
+    makeBox('interior_table',[-2.2,.88,-.35],[2.5,.2,1.45],wood,houseInteriorRoot,null,true);
+    for(const x of [-3.15,-1.25])for(const z of [-.8,.1])makeBox('interior_table_leg',[x,.44,z],[.16,.88,.16],wood,houseInteriorRoot,null,true);
+    makeBox('interior_table_top',[-2.2,1.01,-.35],[2.65,.08,1.55],mat('interior_table_top_'+home.id,empty?'#6b6053':'#694a35'),houseInteriorRoot,null,false);
+  }
+  if(!empty&&!civicRoom){
     for(const x of [-3.1,-1.25])makeBox('interior_chair_seat',[x,.48,1.15],[.85,.14,.8],wood,houseInteriorRoot,null,true);
     for(const x of [-3.42,-2.78,-1.57,-.93])makeBox('interior_chair_leg',[x,.24,1.15],[.09,.48,.09],wood,houseInteriorRoot,null,true);
     for(const x of [-3.1,-1.25])makeBox('interior_chair_back',[x,1.02,1.52],[.82,1,.12],wood,houseInteriorRoot,null,true);
   }
-  if(!empty){
+  if(!empty&&!civicRoom){
     makeBox('interior_bed_frame',[3.5,.42,-2.5],[2.5,.48,3.35],wood,houseInteriorRoot,null,true);
     makeBox('interior_bed_mattress',[3.5,.72,-2.5],[2.32,.22,3.12],mat('interior_bed_mattress_'+home.id,'#bdad91'),houseInteriorRoot,null,false);
     makeBox('interior_bed_cover',[3.5,.86,-2.05],[2.2,.14,2.05],mat('interior_bed_cover_'+home.id,'#74636a'),houseInteriorRoot,null,false);
@@ -748,10 +792,12 @@ function createHouseInterior(home){
     makeBox('empty_house_crate',[3.1,.42,-2.35],[1.35,.8,1.2],wood,houseInteriorRoot,null,true);
     makeBox('empty_house_dust',[3.1,.84,-2.35],[1.4,.06,1.25],mat('empty_house_dust_mat','#928574','#675c50'),houseInteriorRoot,null,false);
   }
-  makeBox('interior_hearth',[0,.42,-4.55],[2.8,.84,.6],trim,houseInteriorRoot,null,true);
-  makeBox('interior_hearth_shelf',[0,.92,-4.24],[3.1,.14,.5],wood,houseInteriorRoot,null,false);
-  makeBox('interior_fire',[0,.82,-4.2],[.52,.62,.12],mat('interior_fire_'+home.id,'#c46e3a','#d76232'),houseInteriorRoot,null,false);
-  makeBox('interior_chimney_niche',[0,1.65,-5.22],[2.1,1.2,.12],trim,houseInteriorRoot,null,false);
+  if(!civicRoom){
+    makeBox('interior_hearth',[0,.42,-4.55],[2.8,.84,.6],trim,houseInteriorRoot,null,true);
+    makeBox('interior_hearth_shelf',[0,.92,-4.24],[3.1,.14,.5],wood,houseInteriorRoot,null,false);
+    makeBox('interior_fire',[0,.82,-4.2],[.52,.62,.12],mat('interior_fire_'+home.id,'#c46e3a','#d76232'),houseInteriorRoot,null,false);
+    makeBox('interior_chimney_niche',[0,1.65,-5.22],[2.1,1.2,.12],trim,houseInteriorRoot,null,false);
+  }
   if(home.type==='bakery'){
     makeBox('bakery_oven_base',[-4.25,.62,-3.25],[2.2,1.24,2.1],trim,houseInteriorRoot,null,true);
     makeBox('bakery_oven_arch',[-4.25,1.25,-2.15],[1.55,1.2,.14],mat('bakery_oven_glow','#8f4833','#d9763e'),houseInteriorRoot,null,false);
@@ -770,16 +816,54 @@ function createHouseInterior(home){
   }else if(home.type==='home'){
     makeBox('home_wall_shelf',[4.45,2.3,-4.9],[1.8,.16,.75],wood,houseInteriorRoot,null,true);
     for(const x of [3.85,4.45,5.05])makeCylinder('home_shelf_pot',[x,2.62,-4.9],.36,.48,mat('home_shelf_pot_mat','#9a765c'),houseInteriorRoot,8);
+  }else if(home.type==='committee'||home.type==='clinic'){
+    const clinical=home.type==='clinic',bedX=3.25;
+    makeBox('care_couch_frame_'+home.id,[bedX,.42,-1.8],[2.25,.42,3.2],mat('care_couch_frame_mat_'+home.id,'#e7e9e5'),houseInteriorRoot,null,true);
+    makeBox('care_couch_mattress_'+home.id,[bedX,.68,-1.8],[2.08,.18,2.95],mat('care_couch_mattress_mat_'+home.id,'#f8f8f3'),houseInteriorRoot,null,false);
+    makeBox('care_couch_pillow_'+home.id,[bedX,.81,-3.02],[1.1,.16,.55],mat('care_couch_pillow_mat_'+home.id,'#d7e8e4'),houseInteriorRoot,null,false);
+    makeBox('care_privacy_screen_'+home.id,[.9,1.45,-1.55],[.12,2.5,3.4],mat('care_privacy_screen_mat_'+home.id,'#e9efed'),houseInteriorRoot,null,false);
+    makeBox('care_supply_cabinet_'+home.id,[-4.55,1.05,-3.5],[1.55,2.1,.9],mat('care_supply_cabinet_mat_'+home.id,'#f3f4ef'),houseInteriorRoot,null,true);
+    makeBox('care_cross_vertical_'+home.id,[-4.55,1.75,-3.02],[.13,.58,.035],mat('care_cross_mat_'+home.id,'#d92332'),houseInteriorRoot,null,false);
+    makeBox('care_cross_horizontal_'+home.id,[-4.55,1.75,-3.0],[.58,.13,.035],mat('care_cross_mat_'+home.id,'#d92332'),houseInteriorRoot,null,false);
+    makeBox('care_chair_'+home.id,[-1.8,.46,2.05],[1.35,.15,1],mat('care_chair_mat_'+home.id,'#d7e2de'),houseInteriorRoot,null,true);
+    if(clinical)makeBox('care_information_board_'+home.id,[-.3,2.2,-5.25],[2.8,1.2,.12],mat('care_information_board_mat_'+home.id,'#f8f8f3'),houseInteriorRoot,null,false);
+  }else if(home.type==='uds'){
+    const table=mat('uds_table_mat','#88775c'),steel=mat('uds_fridge_mat','#dbe4e3'),crates=mat('uds_crate_mat','#c5aa78');
+    for(const [x,z] of [[-1.3,-.25],[1.8,1.65]]){
+      makeBox('uds_prep_table',[x,.88,z],[3.1,.16,1.45],table,houseInteriorRoot,null,true);
+      for(const dx of [-1.25,1.25])for(const dz of [-.48,.48])makeBox('uds_prep_table_leg',[x+dx,.44,z+dz],[.12,.88,.12],table,houseInteriorRoot,null,true);
+      for(const dx of [-.7,.45])makeBox('uds_supply_box',[x+dx,1.2,z],[.68,.46,.58],crates,houseInteriorRoot,null,false);
+    }
+    for(const x of [4.1,5.15]){
+      makeBox('uds_refrigerator',[x,1.35,-3.25],[.82,2.7,1.15],steel,houseInteriorRoot,null,true);
+      makeBox('uds_refrigerator_door',[x,1.35,-2.65],[.72,2.55,.08],mat('uds_refrigerator_door_mat','#edf2f0'),houseInteriorRoot,null,false);
+      makeBox('uds_refrigerator_handle',[x+.24,1.35,-2.58],[.045,.65,.045],mat('uds_refrigerator_handle_mat','#75878a'),houseInteriorRoot,null,false);
+    }
+    for(const x of [-4.6,-3.55])makeBox('uds_insulated_bag',[x,.55,2.5],[.82,.86,.82],mat('uds_insulated_bag_mat','#557d89'),houseInteriorRoot,null,true);
+  }else if(home.type==='warehouse'){
+    for(const x of [-4.55,4.55]){
+      makeBox('warehouse_shelf_frame',[x,1.35,-1.8],[.18,2.7,5.2],mat('warehouse_shelf_frame_mat','#687572'),houseInteriorRoot,null,true);
+      for(const y of [.55,1.45,2.35])makeBox('warehouse_shelf',[x, y,-1.8],[1.7,.14,5.2],mat('warehouse_shelf_mat','#9b8b73'),houseInteriorRoot,null,true);
+      for(const z of [-3.3,-1.8,-.3])makeBox('warehouse_stored_box',[x,1.88,z],[1.05,.72,.92],mat('warehouse_stored_box_mat',z< -2?'#b49a6c':'#8c9d8b'),houseInteriorRoot,null,false);
+    }
+    makeBox('warehouse_sorting_table',[0,.88,1.7],[3.2,.16,1.5],mat('warehouse_sorting_table_mat','#88775c'),houseInteriorRoot,null,true);
+    makeBox('warehouse_handcart_base',[1.9,.34,-3.7],[1.5,.16,1.05],mat('warehouse_handcart_mat','#697876'),houseInteriorRoot,null,true);
+    for(const x of [1.25,2.55])makeCylinder('warehouse_handcart_wheel',[x,.25,-3.7],.48,.13,mat('warehouse_handcart_wheel_mat','#343b3c'),houseInteriorRoot,10).rotation.x=Math.PI/2;
   }
-  if(!empty){
+  if(!empty&&!civicRoom){
     makeBox('interior_storage_shelf',[-4.25,1.35,2.45],[2,.14,1.2],wood,houseInteriorRoot,null,true);
     for(const x of [-4.8,-4.25,-3.7])makeBox('interior_storage_goods',[x,1.75,2.45],[.42,.65,.48],mat('interior_goods_'+home.id,x<-4.3?'#947052':'#75604f'),houseInteriorRoot,null,false);
   }
   if(home.resident){
-    const residentRoot=new BABYLON.TransformNode('resident_'+home.id,scene);residentRoot.position.set(-4.3,0,.5);residentRoot.parent=houseInteriorRoot;
+    const residentRoot=new BABYLON.TransformNode('resident_'+home.id,scene),residentPosition=home.residentPosition||[-4.3,.5];residentRoot.position.set(residentPosition[0],0,residentPosition[1]);residentRoot.parent=houseInteriorRoot;
     buildHumanoid(residentRoot,home.resident,characterProfile(home.resident,home.color||'#7b6d5f',false),0);
     const isTeren=home.type==='forge'&&(!content?.redCrossStory||home.id==='teren');
     interactables.push({kind:isTeren?'blacksmith':'flavor',root:residentRoot,name:home.resident,speaker:home.resident,position:residentRoot.position,text:`${home.resident} sistema con cura le cose di ogni giorno. La casa sembra viva anche nei piccoli gesti.`});
+  }
+  for(const staff of home.staff||[]){
+    const staffRoot=new BABYLON.TransformNode('facility_staff_'+home.id+'_'+staff.name.replace(/\W/g,''),scene);staffRoot.position.set(staff.position[0],0,staff.position[1]);staffRoot.parent=houseInteriorRoot;
+    const model=buildHumanoid(staffRoot,staff.name,characterProfile(staff.name,staff.color||'#3d7d87',false),0);
+    if(model?.metadata?.animation)Object.assign(model.metadata.animation,{roaming:true,roamIntensity:.38});
   }
   for(const feature of home.features||[]){
     const root=new BABYLON.TransformNode('feature_'+home.id+'_'+feature.id,scene);root.position.set(feature.position[0],0,feature.position[1]);root.parent=houseInteriorRoot;
@@ -787,7 +871,7 @@ function createHouseInterior(home){
     if(feature.shape==='round')makeCylinder('feature_shape',[0,.42,0],.9,.84,featureMat,root,10).parent=root;
     else if(feature.shape==='tall')makeBox('feature_shape',[0,.72,0],[.65,1.45,.65],featureMat,root,null,true).parent=root;
     else makeBox('feature_shape',[0,.38,0],[1.15,.72,.72],featureMat,root,null,true).parent=root;
-    interactables.push({kind:'flavor',root,name:feature.label,speaker:feature.speaker||home.resident||'Appunti',text:feature.text,gift:feature.gift||null,claimedText:feature.claimedText||null});
+    interactables.push({kind:'flavor',root,name:feature.label,speaker:feature.speaker||home.resident||'Appunti',text:feature.text,gift:feature.gift||null,claimedText:feature.claimedText||null,action:feature.action||null});
   }
   const exitRoot=new BABYLON.TransformNode('house_exit_'+home.id,scene);exitRoot.position.set(0,.9,4.35);exitRoot.parent=houseInteriorRoot;
   interactables.push({kind:'houseExit',root:exitRoot,name:'Esci dalla casa'});
@@ -1212,7 +1296,7 @@ const RED_CROSS_DISCOVERIES=[
   {id:'bus-stop',name:'Fermata del quartiere',text:'Anche una fermata può diventare un punto di incontro: conoscere il quartiere aiuta la squadra a orientarsi e a raggiungere i luoghi del servizio.',position:[-21,-11]},
   {id:'community-garden',name:'Giardino della comunità',text:'Gli spazi condivisi diventano più accoglienti quando le persone se ne prendono cura insieme. La solidarietà si costruisce anche con piccoli gesti quotidiani.',position:[-23,21]}
 ];
-function makeCivicBuilding(name,x,z,w,d,h,color,accent='#ef233c',label=name,showEmblem=false){
+function makeCivicBuilding(name,x,z,w,d,h,color,accent='#ef233c',label=name,showEmblem=false,home=null){
   const wall=mat(name+'_wall',color),roof=mat(name+'_roof','#d8e0e2'),glass=mat(name+'_glass','#8fbac5','#568b9b',.35),trim=mat(name+'_trim','#f2f4ef'),door=mat(name+'_door','#516b73');
   const front=z+d/2,windowY=h*.62;
   makeBox(name+'_foundation',[x,.22,z],[w+.4,.44,d+.4],mat(name+'_foundation_mat','#858b88'),worldRoot,null,true);
@@ -1228,13 +1312,19 @@ function makeCivicBuilding(name,x,z,w,d,h,color,accent='#ef233c',label=name,show
     makeBox(name+'_window_top_'+side,[wx,windowY+.61,front+.58],[w*.23,.08,.08],trim,worldRoot,null,false);
     makeBox(name+'_window_sill_'+side,[wx,windowY+.19,front+.58],[w*.25,.08,.14],trim,worldRoot,null,false);
   }
-  const sign=makeBox(name+'_sign',[x,h+.13,front+.8],[Math.min(5,w*.55),.62,.12],mat(name+'_sign_mat',accent),worldRoot,null,false);
+  const signWidth=Math.min(5,w*.55);makeBox(name+'_sign',[x,h+.13,front+.8],[signWidth,.62,.12],mat(name+'_sign_mat',accent),worldRoot,null,false);
   const signTexture=new BABYLON.DynamicTexture(name+'_sign_texture',{width:512,height:96},scene,false),ctx=signTexture.getContext();
-  ctx.fillStyle=accent;ctx.fillRect(0,0,512,96);ctx.fillStyle='#ffffff';ctx.font='bold 34px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(label).toUpperCase(),256,48);signTexture.update();
-  const signMaterial=new BABYLON.StandardMaterial(name+'_sign_material',scene);signMaterial.diffuseTexture=signTexture;signMaterial.emissiveTexture=signTexture;signMaterial.backFaceCulling=false;sign.material=signMaterial;
+  ctx.fillStyle=accent;ctx.fillRect(0,0,512,96);ctx.fillStyle='#ffffff';ctx.font='bold 34px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(label).toUpperCase(),showEmblem?220:256,48,showEmblem?400:480);signTexture.update();
+  const signMaterial=new BABYLON.StandardMaterial(name+'_sign_material',scene);signMaterial.diffuseTexture=signTexture;signMaterial.emissiveTexture=signTexture;
+  const signText=BABYLON.MeshBuilder.CreatePlane(name+'_sign_text',{width:signWidth-.12,height:.5},scene);signText.position.set(x,h+.13,front+.92);signText.rotation.y=Math.PI;signText.material=signMaterial;signText.isPickable=false;
   if(showEmblem){
-    makeBox(name+'_sign_cross_v',[x,h+.13,front+.88],[.12,.34,.025],mat(name+'_sign_cross','#fffdf8'),worldRoot,null,false);
-    makeBox(name+'_sign_cross_h',[x,h+.13,front+.89],[.34,.12,.025],mat(name+'_sign_cross','#fffdf8'),worldRoot,null,false);
+    const emblemX=x+signWidth*.39;
+    makeBox(name+'_sign_cross_v',[emblemX,h+.13,front+.94],[.1,.3,.025],mat(name+'_sign_cross','#fffdf8'),worldRoot,null,false);
+    makeBox(name+'_sign_cross_h',[emblemX,h+.13,front+.95],[.3,.1,.025],mat(name+'_sign_cross','#fffdf8'),worldRoot,null,false);
+  }
+  if(home){
+    const entrance=new BABYLON.TransformNode(name+'_entrance',scene);entrance.position.set(x,.9,front+1.8);entrance.parent=worldRoot;
+    houseEntrances.push({kind:'house',root:entrance,name:'Entra: '+home.label,position:entrance.position,home});
   }
 }
 function buildRedCrossWorld(){
@@ -1244,10 +1334,29 @@ function buildRedCrossWorld(){
   for(const z of [-2.4,4.4])makeBox('road_curb',[0,.12,z],[78,.24,.22],mat('road_curb_mat','#858a85'),worldRoot,null,false);
   for(let x=-3;x<=3;x++)makeBox('crosswalk_stripe',[x*1.1,.035,1],[.62,.025,4.4],paint,worldRoot,null,false);
   for(const z of [-14,14,24]){const lane=BABYLON.MeshBuilder.CreateGround('neighborhood_walkway',{width:5,height:26,subdivisions:2},scene);lane.position.set(0,.03,z);lane.material=makePavingMaterial('neighborhood_walkway_mat','#c5c2b8');lane.parent=worldRoot;}
-  makeCivicBuilding('committee_hq',0,-20,15,9,4.6,'#e5e6df','#ef233c','COMITATO',true);
-  makeCivicBuilding('community_center',-20,8,10,8,3.8,'#d7e1dc','#238c85','SPAZIO COMUNE');
-  makeCivicBuilding('logistics_depot',19,8,11,9,4.2,'#d9d4c8','#d18a16','MAGAZZINO');
-  makeCivicBuilding('health_station',20,-17,11,8,4,'#e5e8e5','#d92332','SOCCORSO',true);
+  makeCivicBuilding('committee_hq',0,-20,15,9,4.6,'#e5e6df','#ef233c','COMITATO',true,{
+    id:'committee',label:'Comitato · area di recupero',type:'committee',resident:'Referente del Comitato',color:'#376b75',light:'#d9eee8',
+    features:[{id:'recovery-area',label:'Area di recupero',speaker:'Referente del Comitato',text:'Qui il personaggio può recuperare energia nel gioco. È una funzione di gioco: non rappresenta una prestazione sanitaria reale.',position:[3,-2.2],shape:'tall',color:'#d8e6e3',action:'recover'}],
+    staff:[{name:'Volontaria di Comitato',position:[-1.6,1.1],color:'#2374a4'}]
+  });
+  makeCivicBuilding('community_center',-20,8,10,8,3.8,'#d7e1dc','#238c85','PREPARAZIONE UDS',false,{
+    id:'uds',label:'Unità di Strada · preparazione',type:'uds',resident:'Referente UDS',color:'#238c85',light:'#d9eee8',
+    features:[
+      {id:'uds-prep-table',label:'Tavoli di preparazione',speaker:'Referente UDS',text:'La squadra organizza qui i materiali da portare al turno. Puoi ripetere l’attività di preparazione della missione UDS.',position:[0,1.2],shape:'box',action:'uds-replay'},
+      {id:'uds-fridge',label:'Frigorifero delle scorte',speaker:'Referente UDS',text:'Il frigorifero contiene viveri e bevande destinati alle attività di supporto. Nel gioco le scorte si preparano con attenzione e si seguono le indicazioni del referente.',position:[4,-2.4],shape:'tall'}
+    ],
+    staff:[{name:'Volontaria UDS',position:[-1.7,-1.2],color:'#287d83'},{name:'Volontario UDS',position:[1.5,-1.4],color:'#438765'}]
+  });
+  makeCivicBuilding('logistics_depot',19,8,11,9,4.2,'#d9d4c8','#d18a16','MAGAZZINO',false,{
+    id:'warehouse',label:'Magazzino delle dotazioni',type:'warehouse',resident:'Referente logistico',color:'#96621c',light:'#efdbb4',
+    features:[{id:'warehouse-inventory',label:'Scaffali delle dotazioni',speaker:'Referente logistico',text:'Le dotazioni di gioco sono inventariate e preparate per i servizi. Apri l’inventario per controllare i materiali del personaggio.',position:[-4,2.4],shape:'box',action:'inventory'}],
+    staff:[{name:'Volontario logistico',position:[1.7,-1.2],color:'#d18a16'}]
+  });
+  makeCivicBuilding('health_station',20,-17,11,8,4,'#e5e8e5','#d92332','SOCCORSO',true,{
+    id:'health-station',label:'Punto di supporto',type:'clinic',resident:'Referente del punto di supporto',color:'#b4484a',light:'#f1d8d6',
+    features:[{id:'support-recovery',label:'Spazio tranquillo',speaker:'Referente del punto di supporto',text:'In questa scena il personaggio può recuperare energia. È una meccanica di gioco e non insegna né sostituisce cure reali.',position:[3,-2.1],shape:'tall',color:'#f0dddd',action:'recover'}],
+    staff:[{name:'Volontaria di supporto',position:[-1.7,1.2],color:'#d92332'}]
+  });
   makeCivicBuilding('neighborhood_home_west',-30,-2,7,7,5,'#d6c6ae','#6e8791','ABITAZIONI');
   makeCivicBuilding('neighborhood_home_east',30,18,7,7,5,'#d7d0bc','#6e8791','QUARTIERE');
   for(const x of [2.2,3.8])makeBox('turn_board_post',[x,1.05,-10.5],[.12,2.1,.12],mat('turn_board_post_mat','#56605f'),worldRoot,null,true);
@@ -1276,6 +1385,8 @@ function buildRedCrossWorld(){
   makeBox('supply_shelter_roof',[2,3,21],[9,.3,5],mat('supply_shelter_roof_mat','#e8e8df'),worldRoot,null,true);
   for(const x of [-2,6])for(const z of [19,23])makeBox('supply_shelter_post',[x,1.5,z],[.16,3,.16],mat('supply_shelter_post_mat','#66716d'),worldRoot,null,true);
   makeBox('supply_table',[2,.8,21],[5,.18,1.2],mat('supply_table_mat','#88775c'),worldRoot,null,true);
+  const distributionStation=new BABYLON.TransformNode('distribution_station',scene);distributionStation.position.set(2,0,21);distributionStation.parent=worldRoot;
+  houseEntrances.push({kind:'flavor',root:distributionStation,name:'Punto di preparazione della distribuzione',position:distributionStation.position,speaker:'Referente della distribuzione',text:'La squadra prepara i pacchi e controlla le richieste in un’attività simulata. Avvicinati per ripetere la prova di distribuzione.',action:'distribution-replay'});
   makeBox('bus_stop_panel',[-21,1.65,-11],[1.25,2.4,.15],mat('bus_stop_panel_mat','#39798a'),worldRoot,null,true);
   makeBox('bus_stop_roof',[-21,2.95,-11],[3.5,.16,1.5],mat('bus_stop_roof_mat','#647a7b'),worldRoot,null,true);
   for(const x of [-22.5,-19.5])makeBox('bus_stop_post',[x,1.45,-11],[.12,2.8,.12],mat('bus_stop_post_mat','#596461'),worldRoot,null,true);
@@ -1617,6 +1728,20 @@ function interactWithHouseFeature(item){
         toast(`Hai ricevuto ${quantity} ${name.toLowerCase()}.`);
       }
     }
+  }
+  if(item.action==='recover'){
+    const player=game.player,hpBefore=Number(player.hp||0),destinyBefore=Number(player.destiny||0);
+    player.hp=player.maxHp;player.destiny=destinyCapacity(player);
+    if(player.hp!==hpBefore||player.destiny!==destinyBefore){
+      text+='\n\nIl personaggio ha recuperato energia e Destino nel gioco.';
+      saveGame(false);updateHUD();toast('Recupero di gioco completato.');
+    }else text+='\n\nIl personaggio è già al massimo dell’energia.';
+  }else if(item.action==='uds-replay'){
+    openMissionActivity(true,4);return;
+  }else if(item.action==='distribution-replay'){
+    openMissionActivity(true,3);return;
+  }else if(item.action==='inventory'){
+    openPanel('inventory');return;
   }
   showContextualDialogue(item.speaker,text);
 }
@@ -2062,18 +2187,31 @@ function startStep(showCurtain=false){
 }
 function updateHUD(){if(!game)return;const p=game.player;$('hpText').textContent=`Energia ${Math.round(p.hp)} / ${Math.round(p.maxHp)}`;$('hpFill').style.width=`${clamp(p.hp/p.maxHp*100,0,100)}%`;$('hudClass').textContent=`${p.playerClass} · Livello ${p.level}`;}
 function baseStat(stat){const s=statsForClass(game.player.playerClass);return Number(s[stat]||0);}
-function skillRank(id,p=game?.player){return Math.max(0,Number(p?.skillRanks?.[id]||0));}
+function skillRank(id,p=game?.player){const skillId=LEGACY_SKILL_EFFECT_MAP[id]||id;return Math.max(0,Number(p?.skillRanks?.[skillId]||0));}
+function migrateSkillTree(player){
+  if(Number(player.skillTreeVersion)>=SKILL_TREE_VERSION)return;
+  const tree=content.registries.SKILL_TREE||{},previousRanks=player.skillRanks||{};
+  let refunded=0;
+  for(const [id,value] of Object.entries(previousRanks)){
+    if(tree[id])continue;
+    const rank=Math.max(0,Math.floor(Number(value)||0)),skill=legacySkillTree[id];
+    if(rank&&skill)refunded+=rank*Math.max(1,Number(skill.cost)||1);
+  }
+  player.skillRanks=Object.fromEntries(Object.entries(previousRanks).filter(([id])=>!!tree[id]));
+  player.skillPoints=Math.max(0,Number(player.skillPoints)||0)+refunded;
+  player.skillTreeVersion=SKILL_TREE_VERSION;
+}
 function skillStatBonuses(p=game?.player){
   if(!p)return {};
   const rank=id=>skillRank(id,p);
   return {
-    hp:rank('ancient_vigor')*45+rank('soul_thread')*25+rank('self_anchor')*80,
-    attack:rank('fourfold_mastery')*4,
-    defense:rank('unbroken_will')*4+rank('fourfold_mastery')*4,
-    magic:rank('arcane_core')*5+rank('fourfold_mastery')*4+rank('soul_thread')*8+rank('self_anchor')*8,
-    speed:0,
-    luck:rank('fortune_thread')*2+rank('identity_luck')*4,
-    crit:rank('identity_luck')*.02
+    hp:rank('supportive_presence')*15+rank('team_wellbeing')*30+rank('recovery_and_referral')*25,
+    attack:rank('team_coordination')*3+rank('resource_coordination')*2,
+    defense:rank('service_safety')*3+rank('preparedness')*3+rank('privacy_respect')*2,
+    magic:rank('service_orientation')*5+rank('information_verification')*4+rank('resource_coordination')*4,
+    speed:rank('service_planning'),
+    luck:rank('active_listening')*2+rank('local_knowledge')*2,
+    crit:rank('information_verification')*.02
   };
 }
 function destinyCapacity(p=game?.player){return 100+skillRank('destiny_reservoir',p)*20+skillRank('destiny_overcharge',p)*10;}
@@ -2092,25 +2230,92 @@ function mpConnectionTimeout(message){
     mpSetStatus(message);
   },20000);
 }
-function mpOpen(){ $('multiplayerOverlay').classList.remove('hidden'); $('mpHostActions').classList.remove('hidden'); $('mpCodeWrap').classList.add('hidden'); $('mpRoomDisplay').classList.toggle('hidden',mpRole!=='host'); if(mpRole==='host')mpSetStatus('Sei l’host: il salvataggio principale resta su questo dispositivo. Condividi il codice con un solo amico.');else if(mpRole==='guest')mpSetStatus('Sei connesso alla cronaca online. Il tuo personaggio e il tuo inventario restano indipendenti.');else mpSetStatus('Crea una nuova cronaca oppure entra usando il codice dell’host.'); }
+function mpOpen(){ $('multiplayerOverlay').classList.remove('hidden'); $('mpHostActions').classList.remove('hidden'); $('mpCodeWrap').classList.add('hidden'); $('mpRoomDisplay').classList.toggle('hidden',mpRole!=='host'); if(mpRole==='host')mpSetStatus(`Sei l’host: ${mpConnectedClientCount()+1}/${MP_MAX_PLAYERS} giocatori. Il salvataggio principale resta su questo dispositivo.`);else if(mpRole==='guest')mpSetStatus('Sei connesso alla cronaca online. Il tuo personaggio e il tuo inventario restano indipendenti.');else mpSetStatus('Crea una nuova cronaca oppure entra usando il codice dell’host.'); }
 function mpClose(){ $('multiplayerOverlay').classList.add('hidden'); }
 function mpSetPending(action){mpPendingAction=action;mpClose();startIntro('new','lore');}
 function mpCreateNew(){if(!window.Peer){mpSetStatus('Libreria di rete non disponibile. Controlla la connessione Internet e ricarica il gioco.');return;}mpSetPending('host-new');}
 function mpShowJoin(){ $('mpHostActions').classList.add('hidden');$('mpCodeWrap').classList.remove('hidden');$('mpRoomCode').focus();mpSetStatus('Inserisci il codice di 6 caratteri condiviso dall’host. Poi scegli il tuo nome e la tua classe.'); }
+function mpConnectedClientCount(){return [...mpConnections.values()].filter(conn=>conn.open).length;}
+function mpRefreshLobbyStatus(){if(mpRole==='host')mpSetStatus(`Stanza pronta · ${mpConnectedClientCount()+1}/${MP_MAX_PLAYERS} giocatori. Condividi il codice con la squadra.`);}
+function mpBroadcast(message,excludePeer=''){
+  for(const [peerId,conn] of mpConnections){
+    if(peerId===excludePeer||!conn.open)continue;
+    try{conn.send(message);}catch(error){console.warn('Messaggio multiplayer non inviato a '+peerId+':',error);}
+  }
+}
 function mpStartHost(){
   if(!window.Peer){$('multiplayerOverlay').classList.remove('hidden');mpSetStatus('Libreria PeerJS non disponibile. Ricarica il gioco e verifica l’accesso a Internet.');toast('PeerJS non è disponibile: controlla Internet.');return;}
   mpDisconnect(false);mpRole='host';mpRadarVisibility();mpRoomCode=Math.random().toString(36).slice(2,8).padEnd(6,'x').toLowerCase();const peerId='cod-'+mpRoomCode+'-host';
   mpSetStatus('Apertura della stanza online…');$('mpRoomCodeValue').textContent=mpRoomCode.toUpperCase();$('mpRoomDisplay').classList.remove('hidden');$('mpHostActions').classList.add('hidden');$('mpCodeWrap').classList.add('hidden');$('multiplayerOverlay').classList.remove('hidden');
-  try{mpPeer=new Peer(peerId);mpConnectionTimeout('Il server PeerJS non ha risposto entro 20 secondi. Verifica Internet e riprova a creare la stanza.');mpPeer.on('open',id=>{mpClearConnectionTimer();mpSetStatus('Stanza pronta. Invia il codice qui sopra al tuo amico. Il tuo mondo viene salvato localmente sul dispositivo host.');toast('Stanza online pronta: '+mpRoomCode.toUpperCase());});mpPeer.on('connection',conn=>{if(mpConnection&&mpConnection.open){conn.close();return;}mpConnection=conn;mpWireConnection(conn);});mpPeer.on('error',err=>{mpClearConnectionTimer();console.error('PeerJS host:',err);mpSetStatus('Connessione non riuscita ('+(err.type||'errore')+'). Prova una nuova stanza e verifica che la rete non blocchi il servizio PeerJS.');});}catch(e){mpClearConnectionTimer();console.error('Avvio PeerJS host non riuscito:',e);mpSetStatus('Impossibile avviare la stanza: '+e.message);}
+  try{
+    mpPeer=new Peer(peerId);
+    mpConnectionTimeout('Il server PeerJS non ha risposto entro 20 secondi. Verifica Internet e riprova a creare la stanza.');
+    mpPeer.on('open',()=>{mpClearConnectionTimer();mpRefreshLobbyStatus();toast('Stanza online pronta: '+mpRoomCode.toUpperCase());});
+    mpPeer.on('connection',conn=>{
+      const peerId=conn.peer;
+      if(mpConnections.has(peerId)){conn.close();return;}
+      if(mpConnections.size>=MP_MAX_PLAYERS-1){
+        conn.on('open',()=>{if(conn.open){try{conn.send({type:'roomFull',maxPlayers:MP_MAX_PLAYERS});}catch(error){console.warn('Avviso stanza piena non inviato:',error);}setTimeout(()=>conn.close(),250);}});
+        return;
+      }
+      mpConnections.set(peerId,conn);mpWireConnection(conn,peerId);
+    });
+    mpPeer.on('error',err=>{mpClearConnectionTimer();console.error('PeerJS host:',err);mpSetStatus('Connessione non riuscita ('+(err.type||'errore')+'). Verifica Internet e riprova.');});
+  }catch(e){mpClearConnectionTimer();console.error('Avvio PeerJS host non riuscito:',e);mpSetStatus('Impossibile avviare la stanza: '+e.message);}
 }
 function mpStartGuest(code){
   if(!window.Peer){$('multiplayerOverlay').classList.remove('hidden');mpSetStatus('Libreria PeerJS non disponibile. Ricarica il gioco e verifica l’accesso a Internet.');toast('PeerJS non è disponibile: controlla Internet.');return;}code=String(code||'').toLowerCase().replace(/[^a-z0-9]/g,'').slice(0,6);if(code.length!==6){mpOpen();mpShowJoin();mpSetStatus('Il codice deve contenere 6 caratteri.');return;}
   mpDisconnect(false);mpRole='guest';mpRadarVisibility();mpRoomCode=code;$('multiplayerOverlay').classList.remove('hidden');$('mpHostActions').classList.add('hidden');$('mpCodeWrap').classList.add('hidden');mpSetStatus('Connessione all’host…');
   try{mpPeer=new Peer();mpConnectionTimeout('Il servizio PeerJS non ha risposto entro 20 secondi. Controlla la connessione Internet e riprova.');mpPeer.on('open',()=>{mpClearConnectionTimer();mpSetStatus('Host trovato sul servizio di segnalazione; attendo la connessione diretta…');mpConnection=mpPeer.connect('cod-'+code+'-host',{reliable:true});mpConnectionTimeout('Nessuna risposta dall’host dopo 20 secondi. Verificate codice, rete e firewall; poi riprovate.');mpWireConnection(mpConnection);});mpPeer.on('error',err=>{mpClearConnectionTimer();console.error('PeerJS guest:',err);mpSetStatus('Connessione non riuscita ('+(err.type||'errore')+'). Controlla il codice e che l’host sia online.');});}catch(e){mpClearConnectionTimer();console.error('Avvio PeerJS guest non riuscito:',e);mpSetStatus('Impossibile collegarsi: '+e.message);}
 }
-function mpWireConnection(conn){conn.on('open',()=>{mpClearConnectionTimer();if(mpRole==='host'){mpSetStatus('Amico connesso. Il mondo condiviso è ospitato da questo dispositivo.');mpSendSnapshot();}else{mpSetStatus('Connesso! Sincronizzazione della cronaca in corso…');toast('Connesso alla cronaca online.');}});conn.on('data',msg=>{if(!msg||typeof msg!=='object')return;if(msg.type==='snapshot'&&mpRole==='guest')mpApplySnapshot(msg);if(msg.type==='missionProgress'&&mpRole==='host')mpApplyMissionProgress(msg);if(msg.type==='position'&&msg.position)mpMoveRemote(msg.position,msg.playerName||'Altro Portatore');if(msg.type==='hello'&&mpRole==='host'){mpSetStatus('Amico connesso: '+(msg.playerName||'Portatore')+'.');mpSendSnapshot();}});conn.on('close',()=>{mpClearConnectionTimer();if(mpConnection===conn){mpConnection=null;mpRole='offline';mpRemoveRemote();mpSetStatus('Connessione terminata. Il salvataggio locale è conservato.');toast('La connessione multiplayer è terminata. Il salvataggio locale è conservato.');}});conn.on('error',err=>{mpClearConnectionTimer();console.error('PeerJS connection:',err);mpSetStatus('Connessione diretta non riuscita ('+(err.type||'errore')+'). Verificate firewall/rete e riprovate.');});if(mpRole==='guest')conn.on('open',()=>{conn.send({type:'hello',playerName:game?.player?.name||'Portatore'});});}
+function mpWireConnection(conn,peerId=''){
+  conn.on('open',()=>{
+    mpClearConnectionTimer();
+    if(mpRole==='host'){mpRefreshLobbyStatus();mpSendSnapshot(conn);}
+    else{mpSetStatus('Connesso! Sincronizzazione della cronaca in corso…');toast('Connesso alla cronaca online.');}
+  });
+  conn.on('data',msg=>{
+    if(!msg||typeof msg!=='object')return;
+    if(msg.type==='roomFull'&&mpRole==='guest'){
+      const rejected=mpConnection;mpConnection=null;mpRole='offline';mpPeer?.destroy();mpPeer=null;
+      mpSetStatus(`La stanza è piena: il limite è ${Number(msg.maxPlayers)||MP_MAX_PLAYERS} giocatori totali.`);rejected?.close();return;
+    }
+    if(msg.type==='snapshot'&&mpRole==='guest')mpApplySnapshot(msg);
+    if(msg.type==='missionProgress'&&mpRole==='host')mpApplyMissionProgress(msg);
+    if(msg.type==='position'&&msg.position){
+      const playerId=mpRole==='host'?peerId:String(msg.playerId||'host');
+      const playerName=String(msg.playerName||'Portatore');
+      mpMoveRemote(msg.position,playerName,playerId);
+      if(mpRole==='host')mpBroadcast({type:'position',playerId,playerName,position:msg.position},peerId);
+    }
+    if(msg.type==='peerLeft'&&mpRole==='guest')mpRemoveRemote(String(msg.playerId||''));
+    if(msg.type==='hello'&&mpRole==='host'){
+      const remote=mpRemotePlayers.get(peerId);
+      if(remote)remote.name=String(msg.playerName||'Portatore');
+      mpRefreshLobbyStatus();mpSendSnapshot(conn);
+    }
+  });
+  conn.on('close',()=>{
+    mpClearConnectionTimer();
+    if(mpRole==='host'&&mpConnections.get(peerId)===conn){
+      mpConnections.delete(peerId);mpRemoveRemote(peerId);mpBroadcast({type:'peerLeft',playerId:peerId});mpRefreshLobbyStatus();
+    }else if(mpConnection===conn){
+      mpConnection=null;mpRole='offline';mpRemoveAllRemotes();mpSetStatus('Connessione terminata. Il salvataggio locale è conservato.');toast('La connessione multiplayer è terminata. Il salvataggio locale è conservato.');
+    }
+  });
+  conn.on('error',err=>{
+    mpClearConnectionTimer();console.error('PeerJS connection:',err);
+    mpSetStatus('Connessione diretta non riuscita ('+(err.type||'errore')+'). Verificate firewall/rete e riprovate.');
+  });
+  if(mpRole==='guest')conn.on('open',()=>{conn.send({type:'hello',playerName:game?.player?.name||'Portatore'});});
+}
 function mpSharedSnapshot(){if(!game)return null;const shared=JSON.parse(JSON.stringify(game));return {type:'snapshot',game:shared,stepIndex,hubMode,position:playerRoot?{x:playerRoot.position.x,y:playerRoot.position.y,z:playerRoot.position.z,rotationY:playerRoot.rotation.y}:null,playerName:game.player?.name||'Portatore',sentAt:Date.now()};}
-function mpSendSnapshot(){if(mpRole!=='host'||!mpConnection?.open||!game)return;try{mpConnection.send(mpSharedSnapshot());}catch(e){console.warn('Snapshot multiplayer non inviato',e);}}
+function mpSendSnapshot(target=null){
+  if(mpRole!=='host'||!game)return;
+  const snapshot=mpSharedSnapshot();
+  if(target?.open){try{target.send(snapshot);}catch(error){console.warn('Snapshot multiplayer non inviato:',error);}return;}
+  mpBroadcast(snapshot);
+}
 function mpSendMissionProgress(chapter,state){
   if(mpRole!=='guest'||!mpConnection?.open)return;
   try{mpConnection.send({type:'missionProgress',chapter,state,playerName:game?.player?.name||'Portatore'});}
@@ -2135,7 +2340,7 @@ function mpApplyMissionProgress(message){
   if(!MISSION_REPLAY.active&&!$('missionOverlay').classList.contains('hidden')&&missionChapter()===chapter)renderMissionActivity();
   else if(state.complete&&missionChapter()===chapter)showQuestComplete();
 }
-function mpApplySnapshot(msg){if(!msg.game||!game||mpApplyingSnapshot)return;mpApplyingSnapshot=true;try{const localPlayer=game.player,oldStep=stepIndex,oldScene=currentStep?.scene;const incoming=msg.game;game={...incoming,player:localPlayer,slot:currentSlot};stepIndex=clamp(Number(msg.stepIndex??incoming.stepIndex??0),0,route.length-1);if(game.chapter6Variant&&game.chapter6Variant!=='respected'){const replacement=(content.chapter6_variants?.[game.chapter6Variant]||[]).map(s=>({...s,chapter_number:6,source_module:'chapter6',route_variant:game.chapter6Variant,scene:s.scene||'aether_gate',dialogue:s.dialogue||[]}));route=route.filter(s=>s.chapter_number!==6);const idx=route.findIndex(s=>s.chapter_number>5);route.splice(Math.max(0,idx),0,...replacement);}if(oldStep!==stepIndex||oldScene!==route[stepIndex]?.scene){startStep(false);}else{updateHUD();}if(msg.position)mpMoveRemote(msg.position,msg.playerName||'Host');writeSlot(currentSlot,game);}catch(e){console.error('Sincronizzazione cronaca fallita',e);}finally{mpApplyingSnapshot=false;}}
+function mpApplySnapshot(msg){if(!msg.game||!game||mpApplyingSnapshot)return;mpApplyingSnapshot=true;try{const localPlayer=game.player,oldStep=stepIndex,oldScene=currentStep?.scene;const incoming=msg.game;game={...incoming,player:localPlayer,slot:currentSlot};stepIndex=clamp(Number(msg.stepIndex??incoming.stepIndex??0),0,route.length-1);if(game.chapter6Variant&&game.chapter6Variant!=='respected'){const replacement=(content.chapter6_variants?.[game.chapter6Variant]||[]).map(s=>({...s,chapter_number:6,source_module:'chapter6',route_variant:game.chapter6Variant,scene:s.scene||'aether_gate',dialogue:s.dialogue||[]}));route=route.filter(s=>s.chapter_number!==6);const idx=route.findIndex(s=>s.chapter_number>5);route.splice(Math.max(0,idx),0,...replacement);}if(oldStep!==stepIndex||oldScene!==route[stepIndex]?.scene){startStep(false);}else{updateHUD();}if(msg.position)mpMoveRemote(msg.position,msg.playerName||'Host','host');writeSlot(currentSlot,game);}catch(e){console.error('Sincronizzazione cronaca fallita',e);}finally{mpApplyingSnapshot=false;}}
 const _mpApplySnapshot014=mpApplySnapshot;
 mpApplySnapshot=function(msg){const wasHub=hubMode,oldStep=stepIndex,chapter=missionChapter(),before=JSON.stringify(game?.missionActivities?.[chapter]||null);_mpApplySnapshot014(msg);if(msg.hubMode===true&&!wasHub)enterTownHub();else if(msg.hubMode===false&&wasHub)leaveTownHub();if(!$('missionOverlay').classList.contains('hidden')&&!MISSION_REPLAY.active){if(oldStep!==stepIndex){$('missionOverlay').classList.add('hidden');inputLocked=false;}else if(before!==JSON.stringify(game?.missionActivities?.[chapter]||null))renderMissionActivity();}};
 function mapMarkerPosition(marker,position){
@@ -2207,28 +2412,76 @@ function toggleLocalMap(force){
   else button.focus();
 }
 function mpRadarVisibility(){
-  const remote=$('mpRadarRemote'),status=$('mpRadarDistance');
-  const connected=mpRole!=='offline'&&!!mpConnection?.open;
-  if(remote)remote.classList.toggle('hidden',!connected||!mpRemoteMarker||mpRemoteMarker.isDisposed());
-  if(status&&!connected)status.textContent=mpRole==='offline'?'Modalità solo · area corrente':'In attesa del compagno…';
+  const status=$('mpRadarDistance');
+  const connected=mpRole==='host'?!!mpPeer:mpRole==='guest'&&!!mpConnection?.open;
+  if(status&&!connected)status.textContent=mpRole==='offline'?'Modalità solo · area corrente':'In attesa della squadra…';
 }
 function mpUpdateRadar(){
-  const remote=$('mpRadarRemote'),distance=$('mpRadarDistance');
-  if(!remote||!distance)return;mpRadarVisibility();
+  const field=document.querySelector('.local-map-field'),distance=$('mpRadarDistance');
+  if(!field||!distance)return;mpRadarVisibility();
   if(playerRoot)mapMarkerPosition($('mapPlayerSelf'),playerRoot.position);
-  if(mpRole==='offline'||!game||!playerRoot||!mpRemoteMarker||mpRemoteMarker.isDisposed())return;
-  mapMarkerPosition(remote,mpRemoteMarker.position);
-  const dx=mpRemoteMarker.position.x-playerRoot.position.x,dz=mpRemoteMarker.position.z-playerRoot.position.z;
-  const meters=Math.round(Math.hypot(dx,dz));distance.textContent=`Compagno: ${meters} m · ${Math.abs(dx)>50||Math.abs(dz)>50?'fuori area':''}`;
+  const active=new Set();
+  if(mpRole!=='offline'&&game&&playerRoot){
+    for(const [id,remote] of mpRemotePlayers){
+      if(!remote.mesh||remote.mesh.isDisposed())continue;
+      active.add(id);
+      if(!remote.radar){remote.radar=document.createElement('span');remote.radar.className='local-map-player local-map-other';remote.radar.textContent='◆';field.appendChild(remote.radar);}
+      remote.radar.title=remote.name||'Portatore';remote.radar.style.color=remote.color;mapMarkerPosition(remote.radar,remote.mesh.position);
+    }
+  }
+  for(const [id,remote] of mpRemotePlayers)if(!active.has(id)&&remote.radar){remote.radar.remove();remote.radar=null;}
+  if(mpRole==='offline'||!game||!playerRoot){mpRadarVisibility();return;}
+  if(!active.size){distance.textContent=`Giocatori connessi: ${mpRole==='host'?mpConnectedClientCount()+1:mpRemotePlayers.size+1}/${MP_MAX_PLAYERS}`;return;}
+  const nearest=[...mpRemotePlayers.entries()].filter(([id,remote])=>active.has(id)).map(([id,remote])=>({id,name:remote.name||'Portatore',meters:Math.round(BABYLON.Vector3.Distance(playerRoot.position,remote.mesh.position))})).sort((a,b)=>a.meters-b.meters)[0];
+  distance.textContent=`${mpRole==='host'?mpConnectedClientCount()+1:mpRemotePlayers.size+1}/${MP_MAX_PLAYERS} giocatori · più vicino: ${nearest.name} (${nearest.meters} m)`;
 }
-function mpMoveRemote(pos,name){if(!scene||!worldRoot||!pos)return;if(!mpRemoteMarker||mpRemoteMarker.isDisposed()){mpRemoteMarker=BABYLON.MeshBuilder.CreateSphere('online_companion_marker',{diameter:1.15,segments:8},scene);mpRemoteMarker.material=mat('online_companion_marker_mat','#73d7d9','#73d7d9',.8);mpRemoteMarker.isPickable=false;}mpRemoteMarker.position.set(Number(pos.x)||0,Math.max(.7,Number(pos.y)||.9),Number(pos.z)||0);mpRemoteMarker.metadata={...(mpRemoteMarker.metadata||{}),remoteName:name};const remote=$('mpRadarRemote');if(remote)remote.title=name||'Compagno';mpUpdateRadar();}
-function mpRemoveRemote(){if(mpRemoteMarker&&!mpRemoteMarker.isDisposed())mpRemoteMarker.dispose();mpRemoteMarker=null;}
-function mpDisconnect(show=true){mpClearConnectionTimer();try{mpConnection?.close();mpPeer?.destroy();}catch(e){console.warn('Chiusura PeerJS non riuscita:',e);}mpConnection=null;mpPeer=null;mpRole='offline';mpRoomCode='';mpRemoveRemote();mpRadarVisibility();if(show)toast('Multiplayer disconnesso.');}
-function mpTick(){const now=Date.now();if(now-lastRadarUpdateAt>250){lastRadarUpdateAt=now;mpUpdateRadar();}if(!game||!mpConnection?.open||!playerRoot)return;if(now-mpLastPositionSend>140){mpLastPositionSend=now;try{mpConnection.send({type:'position',position:{x:playerRoot.position.x,y:playerRoot.position.y,z:playerRoot.position.z,rotationY:playerRoot.rotation.y},playerName:game.player?.name||'Portatore'});}catch(e){}}if(mpRole==='host'&&now-mpLastSnapshotSend>1700){mpLastSnapshotSend=now;mpSendSnapshot();}}
+function mpMoveRemote(pos,name,id='host'){
+  if(!scene||!worldRoot||!pos)return;
+  const position={x:Number(pos.x),y:Number(pos.y),z:Number(pos.z)};
+  if(!Object.values(position).every(Number.isFinite))return;
+  let remote=mpRemotePlayers.get(id);
+  if(!remote||remote.mesh.isDisposed()){
+    const palette=['#73d7d9','#e7b45b','#a98bd9','#70bf83','#e57a75','#588cce'];
+    const colorIndex=Math.abs([...String(id)].reduce((sum,char)=>sum+char.charCodeAt(0),0))%palette.length;
+    const safeId=String(id).replace(/\W/g,'_');
+    const mesh=BABYLON.MeshBuilder.CreateSphere('online_player_'+safeId,{diameter:1.15,segments:8},scene);
+    mesh.material=mat('online_player_mat_'+safeId,palette[colorIndex],palette[colorIndex],.8);mesh.isPickable=false;
+    remote={mesh,name:String(name||'Portatore'),color:palette[colorIndex],radar:null};mpRemotePlayers.set(id,remote);
+  }
+  remote.name=String(name||remote.name||'Portatore');
+  remote.mesh.position.set(position.x,Math.max(.7,position.y||.9),position.z);
+  remote.mesh.rotation.y=Number(pos.rotationY)||0;
+  remote.mesh.metadata={...(remote.mesh.metadata||{}),remoteName:remote.name};
+  mpUpdateRadar();
+}
+function mpRemoveRemote(id){
+  const remote=mpRemotePlayers.get(id);if(!remote)return;
+  if(remote.mesh&&!remote.mesh.isDisposed())remote.mesh.dispose();
+  remote.radar?.remove();mpRemotePlayers.delete(id);mpUpdateRadar();
+}
+function mpRemoveAllRemotes(){for(const id of [...mpRemotePlayers.keys()])mpRemoveRemote(id);}
+function mpDisconnect(show=true){
+  mpClearConnectionTimer();
+  const connections=[...mpConnections.values()],connection=mpConnection,peer=mpPeer;
+  mpConnections.clear();mpConnection=null;mpPeer=null;mpRole='offline';mpRoomCode='';
+  try{connection?.close();for(const conn of connections)conn.close();peer?.destroy();}
+  catch(error){console.warn('Chiusura PeerJS non riuscita:',error);}
+  mpRemoveAllRemotes();mpRadarVisibility();if(show)toast('Multiplayer disconnesso.');
+}
+function mpTick(){
+  const now=Date.now();if(now-lastRadarUpdateAt>250){lastRadarUpdateAt=now;mpUpdateRadar();}
+  if(!game||!playerRoot)return;
+  if(now-mpLastPositionSend>300){
+    mpLastPositionSend=now;
+    const message={type:'position',playerId:mpRole==='host'?'host':String(mpPeer?.id||'guest'),position:{x:playerRoot.position.x,y:playerRoot.position.y,z:playerRoot.position.z,rotationY:playerRoot.rotation.y},playerName:game.player?.name||'Portatore'};
+    if(mpRole==='host')mpBroadcast(message);else if(mpRole==='guest'&&mpConnection?.open){try{mpConnection.send(message);}catch(error){console.warn('Posizione multiplayer non inviata:',error);}}
+  }
+  if(mpRole==='host'&&now-mpLastSnapshotSend>1700){mpLastSnapshotSend=now;mpSendSnapshot();}
+}
 
 function createNewGame(slot){
   const cls=selectedClass,stats=statsForClass(cls),starterWeapon=STARTER_CLASS_WEAPONS[cls]||'spada_rovinata';currentSlot=slot;stepIndex=0;hubMode=false;hubReturnPosition=null;route=content.playableChapters.map(s=>({...s}));
-  game={schema:3,slot,difficulty:normalizedDifficulty(selectedDifficulty),player:{name:$('heroName').value.trim()||'Volontario',playerClass:cls,appearance:normalizeAppearance(readAppearanceControls()),level:1,skillPointsThroughLevel:1,xp:0,xpNext:90,maxHp:stats.hp,hp:stats.hp,attack:stats.attack,defense:stats.defense,magic:stats.magic,speed:stats.speed,crit:stats.crit,luck:stats.luck,gold:80,skillPoints:0,skillRanks:{},classMastery:{},titles:[],destiny:100,reputations:Object.fromEntries((content.registries.FACTIONS||[]).map(f=>[f,0])),affinity:{},companions:[],shadows:[],unlockedClasses:[...(content.registries.STARTER_CLASSES||STARTER_FALLBACK)],flags:{},inventory:{potions:5,largePotions:0,antidotes:1,smallShields:2,materials:{polvere_runica:3,nucleo_braci:1,scheggia_gelo:1,cristallo_tuono:1,sigillo_sacro:1,essenza_ombra:2}},weapon:starterWeapon,armor:'cuoio_viandante',shield:'buckler_legno',ring:null},stepIndex:0,completedSteps:[],earnedBadges:[],earnedActivityBadges:[],missionActivities:{},communityTrust:0,activeSideQuests:[],completedSideQuests:[],choices:{},chapter6Variant:'respected',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+  game={schema:3,slot,difficulty:normalizedDifficulty(selectedDifficulty),player:{name:$('heroName').value.trim()||'Volontario',playerClass:cls,appearance:normalizeAppearance(readAppearanceControls()),level:1,skillPointsThroughLevel:1,skillTreeVersion:SKILL_TREE_VERSION,xp:0,xpNext:90,maxHp:stats.hp,hp:stats.hp,attack:stats.attack,defense:stats.defense,magic:stats.magic,speed:stats.speed,crit:stats.crit,luck:stats.luck,gold:80,skillPoints:0,skillRanks:{},classMastery:{},titles:[],destiny:100,reputations:Object.fromEntries((content.registries.FACTIONS||[]).map(f=>[f,0])),affinity:{},companions:[],shadows:[],unlockedClasses:[...(content.registries.STARTER_CLASSES||STARTER_FALLBACK)],flags:{},inventory:{potions:5,largePotions:0,antidotes:1,smallShields:2,materials:{polvere_runica:3,nucleo_braci:1,scheggia_gelo:1,cristallo_tuono:1,sigillo_sacro:1,essenza_ombra:2}},weapon:starterWeapon,armor:'cuoio_viandante',shield:'buckler_legno',ring:null},stepIndex:0,completedSteps:[],earnedBadges:[],earnedActivityBadges:[],missionActivities:{},communityTrust:0,activeSideQuests:[],completedSideQuests:[],choices:{},chapter6Variant:'respected',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
   ensurePlayerInventory(game.player);ensureEquipmentDurability(game.player);  showScreen(null);$('gameUI').classList.remove('hidden');$('pauseScreen').classList.add('hidden');createPlayerVisual();stepIndex=0;startStep(true);saveGame(false);toast('Un nuovo turno è stato avviato nello slot '+(slot+1)+'.');if(mpPendingAction==='host-new'){mpPendingAction=null;mpStartHost();}else if(mpPendingAction==='join-new'){const code=mpPendingCode;mpPendingAction=null;mpPendingCode='';mpStartGuest(code);}
 }
 function loadGame(slot){
@@ -2239,7 +2492,7 @@ function loadGame(slot){
   if(!content.registries.CLASS_DATA[game.player.playerClass])game.player.playerClass=STARTER_FALLBACK[0];
   game.player.unlockedClasses=(game.player.unlockedClasses||[]).map(migratedClassName).filter(name=>content.registries.CLASS_DATA[name]);
   if(!game.player.unlockedClasses.length)game.player.unlockedClasses=[...(content.registries.STARTER_CLASSES||STARTER_FALLBACK)];
-  ensurePlayerInventory(game.player);ensureEquipmentDurability(game.player);game.player.skillRanks=game.player.skillRanks||{};game.player.classMastery=game.player.classMastery||{};game.player.titles=game.player.titles||[];game.earnedBadges=Array.isArray(game.earnedBadges)?game.earnedBadges:[];
+  ensurePlayerInventory(game.player);ensureEquipmentDurability(game.player);game.player.skillRanks=game.player.skillRanks||{};migrateSkillTree(game.player);game.player.classMastery=game.player.classMastery||{};game.player.titles=game.player.titles||[];game.earnedBadges=Array.isArray(game.earnedBadges)?game.earnedBadges:[];
   if(!Number.isFinite(Number(game.player.skillPointsThroughLevel))){const level=Math.max(1,Number(game.player.level||1));game.player.skillPoints=(Number(game.player.skillPoints)||0)+Math.floor(level/5);game.player.skillPointsThroughLevel=level;}
   game.player.destiny=clamp(Number(game.player.destiny||0),0,destinyCapacity(game.player));route=content.playableChapters.map(s=>({...s}));
   stepIndex=clamp(migratedStepIndex,0,route.length);
@@ -2396,7 +2649,7 @@ function renderSkillTree(root,p){
   const note=document.createElement('p');note.className='skill-tree-note';note.textContent=`Punti talento: ${Number(p.skillPoints||0)} · Si ottengono salendo di livello. Sblocca i nodi collegati e investi i punti nei rami che preferisci.`;root.appendChild(note);
   const map=document.createElement('div');map.className='skill-tree-map';root.appendChild(map);
   for(const [branch,skills] of branches){const column=document.createElement('section');column.className='skill-tree-branch';column.innerHTML=`<h3>${escapeHtml(branch)}</h3>`;map.appendChild(column);
-    for(const [id,skill] of skills){const rank=skillRank(id,p),maxRank=Number(skill.max_rank||1),cost=Math.max(1,Number(skill.cost)||1),requires=skill.requires||{},missing=Object.entries(requires).filter(([required,value])=>skillRank(required,p)<Number(value)),canBuy=rank<maxRank&&Number(p.skillPoints||0)>=cost&&!missing.length,node=document.createElement('button');node.type='button';node.className='skill-tree-node'+(rank>=maxRank?' mastered':canBuy?' ready':' locked');node.disabled=!canBuy;node.innerHTML=`<span class="skill-node-rank">${rank>=maxRank?'COMPLETA':`GRADO ${rank}/${maxRank}`}</span><strong>${escapeHtml(skill.name)}</strong><span class="skill-node-description">${escapeHtml(skill.desc||'')}</span><span class="skill-node-requirement">${missing.length?'Richiede: '+missing.map(([key,value])=>`${tree[key]?.name||humanize(key)} ${value}`).join(', '):`Costo: ${cost} ${cost===1?'punto':'punti talento'}`}</span>`;node.addEventListener('click',()=>purchaseSkill(id));column.appendChild(node);}
+    for(const [id,skill] of skills){const rank=skillRank(id,p),maxRank=Number(skill.max_rank||1),cost=Math.max(1,Number(skill.cost)||1),requires=skill.requires||{},missing=Object.entries(requires).filter(([required,value])=>skillRank(required,p)<Number(value)),roleAvailable=skill.role===p.playerClass,canBuy=roleAvailable&&rank<maxRank&&Number(p.skillPoints||0)>=cost&&!missing.length,node=document.createElement('button');node.type='button';node.className='skill-tree-node'+(rank>=maxRank?' mastered':canBuy?' ready':' locked');node.disabled=!canBuy;const requirement=!roleAvailable?`Ruolo richiesto: ${skill.role}`:missing.length?'Richiede: '+missing.map(([key,value])=>`${tree[key]?.name||humanize(key)} ${value}`).join(', '):`Costo: ${cost} ${cost===1?'punto':'punti talento'}`;node.innerHTML=`<span class="skill-node-rank">${rank>=maxRank?'COMPLETA':`GRADO ${rank}/${maxRank}`}</span><strong>${escapeHtml(skill.name)}</strong><span class="skill-node-description">${escapeHtml(skill.desc||'')}</span><span class="skill-node-requirement">${escapeHtml(requirement)}</span>`;node.addEventListener('click',()=>purchaseSkill(id));column.appendChild(node);}
   }
 }
 function renderCharacter(){
@@ -2411,7 +2664,7 @@ function renderCharacter(){
 }
 function purchaseSkill(id){
   if(!game)return;
-  const p=game.player,skill=content.registries.SKILL_TREE?.[id];if(!skill)return;
+  const p=game.player,skill=content.registries.SKILL_TREE?.[id];if(!skill||skill.role!==p.playerClass)return;
   const rank=skillRank(id,p),cost=Math.max(1,Number(skill.cost)||1);
   if(rank>=Number(skill.max_rank||1)||Number(p.skillPoints||0)<cost)return;
   if(Object.entries(skill.requires||{}).some(([required,value])=>skillRank(required,p)<Number(value)))return;
